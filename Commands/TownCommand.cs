@@ -1,4 +1,9 @@
 using OpenMod.API.Commands;using OpenMod.Core.Commands;
 namespace UTowny.Commands;
-[Command("town")][CommandAlias("t")][CommandDescription("UTowny town commands.")]
-public sealed class TownCommand:Command{public TownCommand(IServiceProvider sp):base(sp){}protected override Task OnExecuteAsync()=>PrintAsync("Use /t create <name>, /t info, /t deposit <amount>, /t leave.");}
+[Command("town")][CommandAlias("t")]
+public sealed class TownCommand:Command
+{
+ private readonly CommandRouter m_Router;
+ public TownCommand(IServiceProvider sp,CommandRouter router):base(sp)=>m_Router=router;
+ protected override async Task OnExecuteAsync()=>await PrintAsync(await m_Router.ExecuteAsync(Context,"town"));
+}

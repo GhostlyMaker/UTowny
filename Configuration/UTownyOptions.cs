@@ -2,6 +2,9 @@ namespace UTowny.Configuration;
 
 public sealed class UTownyOptions
 {
+    public ShopOptions Shop {get;set;}=new();
+    public TeleportOptions Teleportation {get;set;}=new();
+    public VisualizationOptions Visualization {get;set;}=new();
     public DatabaseOptions Database { get; set; } = new();
     public TownOptions Towns { get; set; } = new();
     public ClaimOptions Claims { get; set; } = new();

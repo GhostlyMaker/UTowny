@@ -14,7 +14,7 @@ public sealed record Town(
     long TaxAmount,
     DateTime NextTaxUtc,
     TownSpawn? Spawn,
-    bool SpawnPublic);
+    bool SpawnPublic, string? SpawnMap = null, long ProtectionFlags = 0);
 
 public sealed record TownMember(TownId TownId, PlayerId PlayerId, TownRole Role, DateTime JoinedUtc, int MissedTaxCycles);
 public sealed record TownSpawn(float X, float Y, float Z, float Yaw);

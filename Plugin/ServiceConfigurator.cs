@@ -22,6 +22,10 @@ public sealed class ServiceConfigurator : IPluginContainerConfigurator
   var validation = new ConfigValidator().Validate(null, options);
   if (validation.Failed) throw new InvalidOperationException(validation.FailureMessage);
   context.ContainerBuilder.RegisterInstance(Options.Create(options)).As<IOptions<UTownyOptions>>();
+  context.ContainerBuilder.RegisterType<UTowny.Protection.InteractionAdapter>().SingleInstance();
+  context.ContainerBuilder.RegisterType<MutationGate>().SingleInstance();
+  context.ContainerBuilder.RegisterType<ExtendedSchema>().SingleInstance();
+  context.ContainerBuilder.RegisterType<TownManagementService>().As<ITownManagementService>().SingleInstance();
   context.ContainerBuilder.RegisterType<DatabaseConnectionFactory>().As<IDatabaseConnectionFactory>().SingleInstance();
   context.ContainerBuilder.RegisterType<SchemaMigrator>().As<ISchemaMigrator>().SingleInstance();
   context.ContainerBuilder.RegisterType<PlayerRepository>().As<IPlayerRepository>().SingleInstance();
@@ -35,5 +39,14 @@ public sealed class ServiceConfigurator : IPluginContainerConfigurator
   context.ContainerBuilder.RegisterType<ClaimService>().As<IClaimService>().SingleInstance();
   context.ContainerBuilder.RegisterType<PlotService>().As<IPlotService>().SingleInstance();
   context.ContainerBuilder.RegisterType<UTownyApi>().As<IUTownyApi>().SingleInstance();
+  context.ContainerBuilder.RegisterType<NationService>().AsSelf().As<INationService>().SingleInstance();
+  context.ContainerBuilder.RegisterType<WarService>().AsSelf().As<IWarService>().SingleInstance();
+  context.ContainerBuilder.RegisterType<ScheduledService>().AsSelf().SingleInstance();
+  context.ContainerBuilder.RegisterType<LandManagementService>().AsSelf().SingleInstance();
+  context.ContainerBuilder.RegisterType<AdminService>().AsSelf().SingleInstance();
+  context.ContainerBuilder.RegisterType<UTowny.Commands.CommandRouter>().AsSelf().SingleInstance();
+  context.ContainerBuilder.RegisterType<ShopService>().AsSelf().As<IShopService>().SingleInstance();
+  context.ContainerBuilder.RegisterType<TeleportService>().AsSelf().SingleInstance();
+  context.ContainerBuilder.RegisterType<UTowny.Protection.ProtectionService>().AsSelf().As<UTowny.Protection.IProtectionService>().SingleInstance();
  }
 }

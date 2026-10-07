@@ -16,6 +16,12 @@ public sealed class ConfigValidator : IValidateOptions<UTownyOptions>
         if (o.Taxes.IntervalHours < 1) errors.Add("taxes.interval_hours must be >= 1");
         if (o.Upkeep.IntervalHours < 1) errors.Add("upkeep.interval_hours must be >= 1");
         if (o.Wars.PreparationHours < 0 || o.Wars.DurationMinutes < 1) errors.Add("war timing is invalid");
+        if(o.Taxes.MissedCyclesBeforeKick<1) errors.Add("Missed tax cycles must be positive");
+        if(o.Economy.StartingBalance<0||o.Upkeep.BaseAmount<0||o.Upkeep.PerClaimAmount<0||o.Upkeep.PerResidentAmount<0||o.Nations.CreationPrice<0)errors.Add("Money settings cannot be negative");
+        if(o.Teleportation.Cost<0||o.Teleportation.WarmupSeconds<0||o.Teleportation.CooldownSeconds<0||o.Teleportation.CombatLockSeconds<0)errors.Add("Teleport settings cannot be negative");
+        if(o.Shop.MaxBatch<1||o.Shop.MaxBatch>1000)errors.Add("Shop batch must be between 1 and 1000");
+        foreach(var item in o.Shop.Items.Values)if(item.AssetId==0||item.BuyPrice<0||item.SellPrice<0||item.SellPrice>item.BuyPrice)errors.Add("Shop item/prices are invalid");
+        if(Path.GetFileName(o.Database.FileName)!=o.Database.FileName)errors.Add("Database file must be a filename");
         return errors.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(errors);
     }
 }

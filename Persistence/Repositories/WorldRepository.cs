@@ -18,8 +18,8 @@ public sealed class WorldRepository : IWorldRepository
  public async Task<IReadOnlyList<Town>> LoadTownsAsync(CancellationToken ct=default)
  {
   var list=new List<Town>(); await using var db=await m_Db.OpenAsync(ct); await using var c=db.CreateCommand();
-  c.CommandText="SELECT id,name,mayor_steam64,bank_balance,pvp_enabled,created_utc,next_upkeep_utc,tax_enabled,tax_amount,next_tax_utc,spawn_x,spawn_y,spawn_z,spawn_yaw,spawn_public FROM towns";
-  await using var r=await c.ExecuteReaderAsync(ct); while(await r.ReadAsync(ct)) { TownSpawn? s=r.IsDBNull(10)?null:new((float)r.GetDouble(10),(float)r.GetDouble(11),(float)r.GetDouble(12),(float)r.GetDouble(13)); list.Add(new Town(new(r.GetInt64(0)),r.GetString(1),new(unchecked((ulong)r.GetInt64(2))),r.GetInt64(3),r.GetInt64(4)!=0,Dt(r,5),Dt(r,6),r.GetInt64(7)!=0,r.GetInt64(8),Dt(r,9),s,r.GetInt64(14)!=0)); }
+  c.CommandText="SELECT id,name,mayor_steam64,bank_balance,pvp_enabled,created_utc,next_upkeep_utc,tax_enabled,tax_amount,next_tax_utc,spawn_x,spawn_y,spawn_z,spawn_yaw,spawn_public,spawn_map,protection_flags FROM towns";
+  await using var r=await c.ExecuteReaderAsync(ct); while(await r.ReadAsync(ct)) { TownSpawn? s=r.IsDBNull(10)?null:new((float)r.GetDouble(10),(float)r.GetDouble(11),(float)r.GetDouble(12),(float)r.GetDouble(13)); list.Add(new Town(new(r.GetInt64(0)),r.GetString(1),new(unchecked((ulong)r.GetInt64(2))),r.GetInt64(3),r.GetInt64(4)!=0,Dt(r,5),Dt(r,6),r.GetInt64(7)!=0,r.GetInt64(8),Dt(r,9),s,r.GetInt64(14)!=0,r.IsDBNull(15)?null:r.GetString(15),r.GetInt64(16))); }
   return list;
  }
  public async Task<IReadOnlyList<TownMember>> LoadMembersAsync(CancellationToken ct=default)
