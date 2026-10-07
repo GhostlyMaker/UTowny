@@ -1,0 +1,71 @@
+database:
+  file_name: utowny.db
+
+towns:
+  creation_price: 25000
+  minimum_playtime_hours: 20
+  starting_claims: 8
+  claims_per_resident: 2
+  default_pvp: false
+  co_mayor_can_disband: false
+  co_mayor_can_transfer_mayor: false
+
+claims:
+  grid_size_meters: 64
+  claim_price: 2500
+  require_adjacency: true
+  map_id_override: ""
+
+plots:
+  outsiders_can_buy: false
+
+economy:
+  starting_balance: 0
+
+shop:
+  items:
+    scrap:
+      asset_id: 67
+      buy_price: 100
+      sell_price: 50
+
+taxes:
+  interval_hours: 24
+  missed_cycles_before_kick: 1
+  exempt_roles:
+    - Mayor
+
+upkeep:
+  interval_hours: 24
+  base_amount: 1000
+  per_claim_amount: 100
+  per_resident_amount: 250
+
+teleportation:
+  warmup_seconds: 5
+  cooldown_seconds: 60
+  cost: 0
+  cancel_on_movement: true
+  cancel_on_damage: true
+  combat_lock_seconds: 20
+
+nations:
+  creation_price: 100000
+
+wars:
+  preparation_hours: 12
+  duration_minutes: 30
+
+protection:
+  town_build: true
+  town_damage: true
+  town_salvage: true
+  town_interact: true
+  vehicle_damage: true
+
+visualization:
+  claim_tool_asset_id: 0
+  duration_seconds: 8
+
+admin:
+  log_balance_threshold: 100000

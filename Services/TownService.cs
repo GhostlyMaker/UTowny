@@ -1,0 +1,36 @@
+using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using UTowny.Caching;using UTowny.Configuration;using UTowny.Domain.Common;using UTowny.Domain.Towns;using UTowny.Persistence.Database;using UTowny.Persistence.Repositories;using UTowny.Utilities;
+namespace UTowny.Services;
+
+public interface ITownService
+{
+ Task<Result<Town>> CreateAsync(PlayerId mayor,string name,CancellationToken ct=default);
+ Task<Result<long>> DepositAsync(PlayerId player,long amount,CancellationToken ct=default);
+ Town? GetTown(PlayerId player); Town? GetTown(TownId id); Town? GetTown(string name); TownRole? GetRole(PlayerId player);
+ Task<Result> LeaveAsync(PlayerId player,CancellationToken ct=default);
+}
+public sealed class TownService:ITownService
+{
+ private readonly IDatabaseConnectionFactory m_Db;private readonly IWorldStateCache m_Cache;private readonly IPlaytimeService m_Playtime;private readonly IPlayerRepository m_Players;private readonly IOptions<UTownyOptions> m_Options;private readonly ILogger<TownService> m_Logger;private readonly KeyedLock<ulong> m_PlayerLock=new();
+ public TownService(IDatabaseConnectionFactory db,IWorldStateCache cache,IPlaytimeService playtime,IPlayerRepository players,IOptions<UTownyOptions> options,ILogger<TownService> logger){m_Db=db;m_Cache=cache;m_Playtime=playtime;m_Players=players;m_Options=options;m_Logger=logger;}
+ public Town? GetTown(PlayerId p){var m=m_Cache.GetMembership(p);return m is null?null:m_Cache.GetTown(m.TownId);} public Town? GetTown(TownId id)=>m_Cache.GetTown(id);public Town? GetTown(string name)=>m_Cache.GetTownByName(name); public TownRole? GetRole(PlayerId p)=>m_Cache.GetMembership(p)?.Role;
+ public async Task<Result<Town>> CreateAsync(PlayerId mayor,string name,CancellationToken ct=default)
+ {
+  name=(name??"").Trim();if(name.Length<3||name.Length>32||name.Any(ch=>!(char.IsLetterOrDigit(ch)||ch=='_'||ch=='-')))return Result<Town>.Fail("invalid_town_name");
+  using(await m_PlayerLock.AcquireAsync(mayor.Value,ct)){
+   if(m_Cache.GetMembership(mayor)!=null)return Result<Town>.Fail("already_in_town");if(m_Cache.GetTownByName(name)!=null)return Result<Town>.Fail("town_name_taken");
+   var sec=await m_Playtime.GetTotalSecondsAsync(mayor,ct);if(sec<m_Options.Value.Towns.MinimumPlaytimeHours*3600L)return Result<Town>.Fail("minimum_playtime");await m_Players.EnsureAsync(mayor,m_Options.Value.Economy.StartingBalance,ct);
+   await using var db=await m_Db.OpenAsync(ct);await using var tx=await db.BeginTransactionAsync(ct);var now=DateTime.UtcNow;var nextUpkeep=now.AddHours(m_Options.Value.Upkeep.IntervalHours);var nextTax=now.AddHours(m_Options.Value.Taxes.IntervalHours);
+   try{
+    await using(var debit=db.CreateCommand()){debit.Transaction=(SqliteTransaction)tx;debit.CommandText="UPDATE players SET balance=balance-$cost WHERE steam64=$p AND balance >= $cost";debit.Parameters.AddWithValue("$cost",m_Options.Value.Towns.CreationPrice);debit.Parameters.AddWithValue("$p",unchecked((long)mayor.Value));if(await debit.ExecuteNonQueryAsync(ct)!=1){await tx.RollbackAsync(ct);return Result<Town>.Fail("insufficient_balance");}}
+    long id;await using(var ins=db.CreateCommand()){ins.Transaction=(SqliteTransaction)tx;ins.CommandText="INSERT INTO towns(name,mayor_steam64,bank_balance,pvp_enabled,created_utc,next_upkeep_utc,tax_enabled,tax_amount,next_tax_utc,spawn_public) VALUES($n,$m,0,$pvp,$c,$u,0,0,$t,0);SELECT last_insert_rowid();";ins.Parameters.AddWithValue("$n",name);ins.Parameters.AddWithValue("$m",unchecked((long)mayor.Value));ins.Parameters.AddWithValue("$pvp",m_Options.Value.Towns.DefaultPvp?1:0);ins.Parameters.AddWithValue("$c",now.ToString("O"));ins.Parameters.AddWithValue("$u",nextUpkeep.ToString("O"));ins.Parameters.AddWithValue("$t",nextTax.ToString("O"));id=(long)(await ins.ExecuteScalarAsync(ct))!;}
+    await using(var mem=db.CreateCommand()){mem.Transaction=(SqliteTransaction)tx;mem.CommandText="INSERT INTO town_members(town_id,player_steam64,role,joined_utc,missed_tax_cycles) VALUES($t,$p,2,$j,0)";mem.Parameters.AddWithValue("$t",id);mem.Parameters.AddWithValue("$p",unchecked((long)mayor.Value));mem.Parameters.AddWithValue("$j",now.ToString("O"));await mem.ExecuteNonQueryAsync(ct);}await tx.CommitAsync(ct);
+    var town=new Town(new(id),name,mayor,0,m_Options.Value.Towns.DefaultPvp,now,nextUpkeep,false,0,nextTax,null,false);m_Cache.UpsertTown(town);m_Cache.UpsertMember(new(new(id),mayor,TownRole.Mayor,now,0));m_Logger.LogInformation("Town {Town} ({TownId}) created by {Player}",name,id,mayor.Value);return Result<Town>.Ok(town);
+   }catch(SqliteException ex) when(ex.SqliteErrorCode==19){await tx.RollbackAsync(ct);return Result<Town>.Fail("town_name_taken");}
+  }
+ }
+ public async Task<Result<long>> DepositAsync(PlayerId p,long amount,CancellationToken ct=default){if(amount<=0)return Result<long>.Fail("invalid_amount");var m=m_Cache.GetMembership(p);if(m is null)return Result<long>.Fail("not_in_town");using(await m_PlayerLock.AcquireAsync(p.Value,ct)){await using var db=await m_Db.OpenAsync(ct);await using var tx=await db.BeginTransactionAsync(ct);await using(var d=db.CreateCommand()){d.Transaction=(SqliteTransaction)tx;d.CommandText="UPDATE players SET balance=balance-$a WHERE steam64=$p AND balance >= $a";d.Parameters.AddWithValue("$a",amount);d.Parameters.AddWithValue("$p",unchecked((long)p.Value));if(await d.ExecuteNonQueryAsync(ct)!=1){await tx.RollbackAsync(ct);return Result<long>.Fail("insufficient_balance");}}long bal;await using(var c=db.CreateCommand()){c.Transaction=(SqliteTransaction)tx;c.CommandText="UPDATE towns SET bank_balance=bank_balance+$a WHERE id=$t RETURNING bank_balance";c.Parameters.AddWithValue("$a",amount);c.Parameters.AddWithValue("$t",m.TownId.Value);bal=(long)(await c.ExecuteScalarAsync(ct))!;}await tx.CommitAsync(ct);var t=m_Cache.GetTown(m.TownId)!;m_Cache.UpsertTown(t with{BankBalance=bal});return Result<long>.Ok(bal);}}
+ public async Task<Result> LeaveAsync(PlayerId p,CancellationToken ct=default){var m=m_Cache.GetMembership(p);if(m is null)return Result.Fail("not_in_town");if(m.Role==TownRole.Mayor)return Result.Fail("mayor_cannot_leave");using(await m_PlayerLock.AcquireAsync(p.Value,ct)){await using var db=await m_Db.OpenAsync(ct);await using var tx=await db.BeginTransactionAsync(ct);await using(var own=db.CreateCommand()){own.Transaction=(SqliteTransaction)tx;own.CommandText="UPDATE claims SET plot_owner_steam64=NULL WHERE town_id=$t AND plot_owner_steam64=$p";own.Parameters.AddWithValue("$t",m.TownId.Value);own.Parameters.AddWithValue("$p",unchecked((long)p.Value));await own.ExecuteNonQueryAsync(ct);}await using(var del=db.CreateCommand()){del.Transaction=(SqliteTransaction)tx;del.CommandText="DELETE FROM town_members WHERE player_steam64=$p";del.Parameters.AddWithValue("$p",unchecked((long)p.Value));await del.ExecuteNonQueryAsync(ct);}await tx.CommitAsync(ct);m_Cache.RemoveMember(p);foreach(var c in m_Cache.GetTownClaims(m.TownId).Where(c=>c.PlotOwner==p))m_Cache.UpsertClaim(c with{PlotOwner=null});return Result.Ok();}}
+}

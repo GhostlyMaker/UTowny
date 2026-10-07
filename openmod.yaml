@@ -1,0 +1,7 @@
+id: UTowny
+name: UTowny
+version: 1.0.0
+framework: netstandard2.1
+author: UTowny contributors
+website: ""
+description: Production town, claim, economy, nation and consensual-war systems for Unturned/OpenMod.

@@ -1,0 +1,28 @@
+name: Build UTowny
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore
+        run: dotnet restore UTowny.csproj
+      - name: Build
+        run: dotnet build UTowny.csproj --configuration Release --no-restore
+      - uses: actions/upload-artifact@v4
+        with:
+          name: UTowny-build
+          path: |
+            bin/Release/netstandard2.1/UTowny.dll
+            README.md
+            config.yaml
+            translations.yaml
+          if-no-files-found: error
