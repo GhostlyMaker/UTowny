@@ -1,6 +1,6 @@
 using OpenMod.API.Commands;using OpenMod.Core.Commands;
 namespace UTowny.Commands;
-[Command("town")][CommandAlias("t")]
+[Command("town")][CommandAlias("t")][CommandAlias("towny")]
 public sealed class TownCommand:Command
 {
  private readonly CommandRouter m_Router;

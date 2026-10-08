@@ -6,6 +6,20 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../Services/TownService.cs" Link="Services/TownService.cs" />
+    <Compile Include="../../Services/PlaytimeService.cs" Link="Services/PlaytimeService.cs" />
+    <Compile Include="../../Services/MutationGate.cs" Link="Services/MutationGate.cs" />
+    <Compile Include="../../Services/DomainEventPublisher.cs" Link="Services/DomainEventPublisher.cs" />
+    <Compile Include="../../Caching/WorldStateCache.cs" Link="Caching/WorldStateCache.cs" />
+    <Compile Include="../../Persistence/Repositories/PlayerRepository.cs" Link="Persistence/Repositories/PlayerRepository.cs" />
+    <Compile Include="../../Persistence/Repositories/WorldRepository.cs" Link="Persistence/Repositories/WorldRepository.cs" />
+    <Compile Include="../../Persistence/Database/SchemaMigrator.cs" Link="Persistence/Database/SchemaMigrator.cs" />
+    <Compile Include="../../Persistence/Database/ExtendedSchema.cs" Link="Persistence/Database/ExtendedSchema.cs" />
+    <Compile Include="../../Persistence/Database/SqlSession.cs" Link="Persistence/Database/SqlSession.cs" />
+    <Compile Include="../../Utilities/KeyedLock.cs" Link="Utilities/KeyedLock.cs" />
+    <Compile Include="../../Api/Events/DomainEvents.cs" Link="Api/Events/DomainEvents.cs" />
+    <Compile Include="../../Domain/**/*.cs" Link="Domain/%(RecursiveDir)%(Filename)%(Extension)" />
+
     <Compile Include="../../Commands/CommandPermissions.cs" Link="CommandPermissions.cs" />
     <PackageReference Include="OpenMod.Core" Version="3.8.10" />
     <Compile Include="../../Utilities/CancellableDispatch.cs" Link="CancellableDispatch.cs" />

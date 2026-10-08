@@ -24,8 +24,16 @@ public static class CommandPermissions
         registry.RegisterPermission(plugin, "admin.bypass", "Temporary protection bypass");
     }
 
+    public static string NormalizeAction(string group, string action)
+    {
+        action = action.ToLowerInvariant();
+        return group == "town" && action == "new" ? "create" : action;
+    }
+
     public static string? Resolve(string group, string action)
     {
+        action = NormalizeAction(group, action);
+        if (action == "help") action = "info";
         if (group == "utowny") return "UTowny:admin";
         if (group == "balance" || group == "buy" || group == "sell") return "UTowny:commands." + group;
         return Actions.TryGetValue(group, out var actions) && actions.Contains(action)

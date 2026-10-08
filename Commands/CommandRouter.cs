@@ -20,14 +20,17 @@ public sealed class CommandRouter
  {
   try
   {
-   var args=context.Parameters.ToArray();var op=args.Length==0?"info":args[0].ToLowerInvariant();string Arg(int n)=>args.Length>n?args[n]:throw new ArgumentException();
+   var args=context.Parameters.ToArray();var op=CommandPermissions.NormalizeAction(group,args.Length==0?"info":args[0]);string Arg(int n)=>args.Length>n?args[n]:throw new ArgumentException();
    if(group=="balance")op="info";
    if(group=="buy"||group=="sell")op="trade";
    var permission=CommandPermissions.Resolve(group,op);
-   if(permission==null)return m_Text["syntax"];
+   if(permission==null)return Help(group);
    if(await m_Permissions.CheckPermissionAsync(context.Actor,permission)!=PermissionGrantResult.Grant)return m_Text["permission_denied"];
    var user=context.Actor as UnturnedUser;if(user==null&&group!="utowny")return m_Text["player_only"];
-   var id=new PlayerId(user?.Player.SteamId.m_SteamID??0);GridCoord grid=default;TownSpawn? position=null;
+   var id=new PlayerId(user?.Player.SteamId.m_SteamID??0);
+   if(op=="help"||(group=="town"&&args.Length==0&&m_Towns.GetTown(id)==null))return Help(group);
+   if(group=="town"&&op=="create"&&args.Length!=2)return Message("town_create_usage","Usage: /t create <name> or /t new <name>. Example: /t create VazerTown");
+   GridCoord grid=default;TownSpawn? position=null;
    await UniTask.SwitchToMainThread();
    if(user!=null){var p=user.Player.Player.transform.position;grid=m_Grid.FromWorld(Level.info.name,p.x,p.z);position=new(p.x,p.y,p.z,user.Player.Player.transform.eulerAngles.y);}
    PlayerId PlayerArg(string value)
@@ -44,7 +47,10 @@ public sealed class CommandRouter
    {
     switch(op)
     {
-     case "create":var created=await m_Towns.CreateAsync(id,Arg(1));result=new(created.Success,created.Code);break;
+     case "create":
+      var isAdmin=await m_Permissions.CheckPermissionAsync(context.Actor,"UTowny:admin")==PermissionGrantResult.Grant;
+      var created=isAdmin?await m_Towns.CreateAsAdminAsync(id,Arg(1)):await m_Towns.CreateAsync(id,Arg(1));
+      return created.Success?Message("town_created",$"Town {created.Value!.Name} created. You are its mayor.",new {Name=created.Value!.Name}):m_Text[created.Code];
      case "deposit":var deposit=await m_Towns.DepositAsync(id,long.Parse(Arg(1)));result=new(deposit.Success,deposit.Code);break;
      case "leave":result=await m_Towns.LeaveAsync(id);break;
      case "invite":result=await m_Manage.InviteAsync(id,targetPlayer);break;
@@ -100,12 +106,28 @@ public sealed class CommandRouter
    return m_Text[result.Code];
   }
   catch(UTowny.Api.Events.TownyActionCancelledException){return m_Text["action_cancelled"];}
-  catch(ArgumentException){return m_Text["syntax"];}
+  catch(CommandFeedbackException ex){return m_Text[ex.Key];}
+  catch(ArgumentException){return Help(group);}
   catch(FormatException){return m_Text["invalid_amount"];}
   catch(OverflowException){return m_Text["invalid_amount"];}
   catch(Exception ex){m_Log.LogError(ex,"Command {Group} failed for {Actor}",group,context.Actor.Id);return m_Text["generic_error"];}
  }
- private Town FindTown(string name)=>m_Towns.GetTown(name)??throw new ArgumentException();
- private Town OwnTown(PlayerId id)=>m_Towns.GetTown(id)??throw new ArgumentException();
+ private string Message(string key,string fallback,params object[] args)
+ {var value=m_Text[key,args];return value.ResourceNotFound?fallback:value.Value;}
+ private string Help(string group)=>Message(group+"_help",group switch
+ {
+  "town"=>"Town commands: /t create <name> (or /t new <name>), /t info [name], /t list, /t invite <player>, /t accept <town>, /t deposit <amount>, /t claim, /t spawn. Example: /t create VazerTown",
+  "nation"=>"Nation commands: /n create <name>, /n info, /n members, /n invite <town>, /n accept <nation>. You must belong to a town first.",
+  "plot"=>"Plot commands: /plot info, /plot buy, /plot forsale <price>, /plot notforsale, /plot permissions <action> on|off.",
+  "war"=>"War commands: /war request|accept|decline|cancel <town>, /war info, /war list.",
+  "buy"=>"Usage: /buy <item> <amount>. Example: /buy scrap 1",
+  "sell"=>"Usage: /sell <item> <amount|all>. Example: /sell scrap all",
+  "utowny"=>"Admin commands: /utowny info <town>, /utowny balance <Steam64> <amount>, /utowny reload, /utowny bypass on|off. See COMMANDS.md for all admin actions.",
+  _=>"Use /t help for town commands."
+ });
+ private sealed class CommandFeedbackException:Exception
+ {public string Key {get;} public CommandFeedbackException(string key)=>Key=key;}
+ private Town FindTown(string name)=>m_Towns.GetTown(name)??throw new CommandFeedbackException("town_not_found");
+ private Town OwnTown(PlayerId id)=>m_Towns.GetTown(id)??throw new CommandFeedbackException("not_in_town");
  private static long Toggle(string value)=>value.ToLowerInvariant() switch {"on"=>1,"off"=>0,_=>throw new ArgumentException()};
 }

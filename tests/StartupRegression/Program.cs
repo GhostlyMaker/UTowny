@@ -43,3 +43,5 @@ finally
 await DispatchRegression.RunAsync();
 
 PermissionRegression.Run();
+
+await CreationRegression.RunAsync();

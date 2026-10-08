@@ -39,3 +39,7 @@ CI verifies cancellation of queued game-thread work without a pumping thread, no
 ## rc.4 permission registration
 
 CI uses OpenMod 3.8.10 PermissionRegistry to verify every documented gameplay subcommand resolves to a registered permission, registration does not grant access by default, repeated registration does not duplicate entries, and a new plugin owner can register after unload. Unknown gameplay actions return syntax without asking OpenMod to check an unregistered permission. On the server, verify `/t`, `/t create <name>`, plot/nation/war commands, existing admin grants, and denied access for an unprivileged player. Town leadership, creation balance/playtime requirements and administrative checks remain enforced.
+
+## rc.5 creation and command feedback
+
+CI runs the actual town service, migrations, mutation gate, repositories and cache against SQLite. Admin creation with zero funds/playtime succeeds without charging; normal creation still checks playtime, minimum balance, and charges the configured fee. Duplicate names, existing membership, invalid names and persistence are verified. Alias permission mapping is tested. On the server test `/t`, `/t new`, `/town create`, `/towny help`, `/t new VazerTown`, and `/nation` without town membership. New help strings have built-in fallbacks so existing translations.yaml files need not be overwritten. Trusted plugin API callers of CreateAsAdminAsync must authorize the administrator before invoking it.

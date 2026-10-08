@@ -7,7 +7,7 @@
 | `/balance` | Own virtual balance |
 | `/sell scrap <count|all>` | Sell carried Scrap; excludes equipped slots and external storage |
 | `/buy scrap <count>` | Buy Scrap if inventory has room |
-| `/t create <name>` | Create a town after balance/playtime checks |
+| `/t create <name>` or `/t new <name>` | Create a town; users granted `UTowny:admin` skip the creation fee, minimum balance and playtime checks |
 | `/t info [name]`, `/t list`, `/t residents` | Town details, towns, or residents |
 | `/t invite <player>`, `/t accept <town>` | Persistent invitation and acceptance |
 | `/t leave`, `/t kick <player>` | Leave or remove a lower-role member |
@@ -50,3 +50,5 @@ All require the admin permission in addition to the root command permission. Bal
 - `/utowny reload` — validated gameplay configuration reload.
 - `/utowny trades <Steam64>` — pending shop trade IDs and details.
 - `/utowny resolve <trade-id> completed|cancelled` — reconcile only after verifying saved inventory; see README.
+
+`/towny` is an alias of `/town` and `/t`. Use `/t help` for quick help; `/t` also shows help when you have no town. Creation always needs a valid, unused name and a player who does not already belong to a town. Admin creation does not exempt the resulting town from ordinary upkeep.

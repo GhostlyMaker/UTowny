@@ -15,3 +15,5 @@ A normal player needs the root permission and the relevant subcommand permission
 The held claim tool requires `UTowny:commands.town.claim`; claiming still requires leadership. For trusted regular players, granting only the four gameplay command subtrees (`town`, `plot`, `nation`, `war`) plus economy commands is convenient if your permission store supports wildcards. Never grant the entire `UTowny:*` namespace to ordinary players because it includes administration.
 
 UTowny registers all of the gameplay action nodes above during startup. Root command permissions are registered by OpenMod. An unknown action returns syntax help instead of checking an arbitrary unregistered permission. Registration alone does not grant the permission to any role.
+
+`UTowny:admin` also exempts the caller from town-creation playtime, minimum balance and the creation fee. `/t new` uses the existing `UTowny:commands.town.create` permission. `/towny` is an alias for the town root. `/t help` uses town info permission.

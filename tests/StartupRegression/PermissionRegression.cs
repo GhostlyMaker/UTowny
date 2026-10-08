@@ -9,6 +9,8 @@ internal static class PermissionRegression
 {
     public static void Run()
     {
+        if (CommandPermissions.Resolve("town", "new") != "UTowny:commands.town.create" || CommandPermissions.NormalizeAction("town", "NEW") != "create") throw new Exception("Town creation alias changed permission");
+        if (CommandPermissions.Resolve("town", "help") != "UTowny:commands.town.info") throw new Exception("Help permission is unregistered");
         var registry = new PermissionRegistry();
         var plugin = new Component();
         if (registry.FindPermission("UTowny:commands.town.info") != null) throw new Exception("Unexpected pre-existing permission");
