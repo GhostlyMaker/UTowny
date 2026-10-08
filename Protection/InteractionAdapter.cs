@@ -22,5 +22,5 @@ public sealed class InteractionAdapter : IDisposable
  }
  private static bool Prefix(Component __instance,ref ServerInvocationContext context)
  {var player=context.GetPlayer();return player!=null&&s_Allow?.Invoke(__instance,player)==true;}
- public void Dispose(){m_Harmony.UnpatchSelf();s_Allow=null;}
+ public void Dispose(){m_Harmony.UnpatchAll("UTowny.interactions");s_Allow=null;}
 }

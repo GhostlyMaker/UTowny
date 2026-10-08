@@ -54,5 +54,5 @@ public sealed class WarService : IWarService
   {if(s.Execute("UPDATE wars SET status=4 WHERE a=$0 AND b=$1 AND requested_by=$2 AND status=0",a,b,town.Value)!=1)return Result.Fail("war_cannot_cancel");}
   else return Result.Fail("syntax");
   s.Commit();await RefreshAsync();return Result.Ok();
- });
+ },change:new UTowny.Api.Events.DomainOperation("war."+action,actor));
 }

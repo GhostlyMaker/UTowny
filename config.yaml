@@ -23,6 +23,7 @@ economy:
   starting_balance: 0
 
 shop:
+  max_batch: 100
   items:
     scrap:
       asset_id: 67
@@ -66,6 +67,9 @@ protection:
 visualization:
   claim_tool_asset_id: 0
   duration_seconds: 8
+  effect_asset_id: 0
+  preview_key: 0
+  claim_key: 1
 
 admin:
   log_balance_threshold: 100000

@@ -35,7 +35,7 @@ public sealed class TownManagementService : ITownManagementService
         var result = body(s, member.TownId);
         if (result.Success) { s.Commit(); await m_Cache.RebuildAsync(); }
         return result;
-    });
+    },change:new UTowny.Api.Events.DomainOperation("town."+action.ToString().ToLowerInvariant(),actor));
     public Task<Result> InviteAsync(PlayerId actor, PlayerId target) => Change(actor, TownAction.Invite, (s, town) =>
     {
         if (s.Number("SELECT COUNT(*) FROM town_members WHERE player_steam64=$0", (long)target.Value) != 0) return Result.Fail("already_in_town");
@@ -51,7 +51,7 @@ public sealed class TownManagementService : ITownManagementService
         s.Execute("INSERT INTO town_members VALUES($0,$1,0,$2,0)", town.Value, (long)actor.Value, DateTime.UtcNow.ToString("O"));
         s.Execute("DELETE FROM town_invites WHERE player_steam64=$0", (long)actor.Value);
         s.Commit(); await m_Cache.RebuildAsync(); return Result.Ok("joined");
-    });
+    },change:new UTowny.Api.Events.DomainOperation("town.join",actor,town));
     public static void RemoveMember(SqlSession s, PlayerId player)
     {
         s.Execute("UPDATE claims SET plot_owner_steam64=NULL,for_sale=0,price=0,protection_flags=0 WHERE plot_owner_steam64=$0", (long)player.Value);

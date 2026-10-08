@@ -91,5 +91,5 @@ public sealed class NationService : INationService
    }
   }
   s.Commit();await m_Cache.RebuildAsync();return Result.Ok();
- });
+ },change:new UTowny.Api.Events.DomainOperation("nation."+action,actor));
 }

@@ -23,6 +23,8 @@ public sealed class ServiceConfigurator : IPluginContainerConfigurator
   if (validation.Failed) throw new InvalidOperationException(validation.FailureMessage);
   context.ContainerBuilder.RegisterInstance(Options.Create(options)).As<IOptions<UTownyOptions>>();
   context.ContainerBuilder.RegisterType<UTowny.Protection.InteractionAdapter>().SingleInstance();
+  context.ContainerBuilder.RegisterType<UTowny.Visualization.ClaimToolService>().SingleInstance();
+  context.ContainerBuilder.RegisterType<DomainEventPublisher>().SingleInstance();
   context.ContainerBuilder.RegisterType<MutationGate>().SingleInstance();
   context.ContainerBuilder.RegisterType<ExtendedSchema>().SingleInstance();
   context.ContainerBuilder.RegisterType<TownManagementService>().As<ITownManagementService>().SingleInstance();
@@ -38,7 +40,7 @@ public sealed class ServiceConfigurator : IPluginContainerConfigurator
   context.ContainerBuilder.RegisterType<GridService>().As<IGridService>().SingleInstance();
   context.ContainerBuilder.RegisterType<ClaimService>().As<IClaimService>().SingleInstance();
   context.ContainerBuilder.RegisterType<PlotService>().As<IPlotService>().SingleInstance();
-  context.ContainerBuilder.RegisterType<UTownyApi>().As<IUTownyApi>().SingleInstance();
+  context.ContainerBuilder.RegisterType<UTownyApi>().AsSelf().As<IUTownyApi>().SingleInstance();
   context.ContainerBuilder.RegisterType<NationService>().AsSelf().As<INationService>().SingleInstance();
   context.ContainerBuilder.RegisterType<WarService>().AsSelf().As<IWarService>().SingleInstance();
   context.ContainerBuilder.RegisterType<ScheduledService>().AsSelf().SingleInstance();
