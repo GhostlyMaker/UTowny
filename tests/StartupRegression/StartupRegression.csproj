@@ -13,6 +13,6 @@
     <Compile Include="../../Configuration/UTownyOptions.cs" Link="UTownyOptions.cs" />
     <Compile Include="../../Configuration/AdditionalOptions.cs" Link="AdditionalOptions.cs" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
   </ItemGroup>
 </Project>
