@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../Commands/CommandPermissions.cs" Link="CommandPermissions.cs" />
+    <PackageReference Include="OpenMod.Core" Version="3.8.10" />
     <Compile Include="../../Utilities/CancellableDispatch.cs" Link="CancellableDispatch.cs" />
     <Compile Include="../../Persistence/Database/DatabaseConnectionFactory.cs" Link="DatabaseConnectionFactory.cs" />
     <Compile Include="../../Configuration/UTownyOptions.cs" Link="UTownyOptions.cs" />

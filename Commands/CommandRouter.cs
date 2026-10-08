@@ -23,7 +23,9 @@ public sealed class CommandRouter
    var args=context.Parameters.ToArray();var op=args.Length==0?"info":args[0].ToLowerInvariant();string Arg(int n)=>args.Length>n?args[n]:throw new ArgumentException();
    if(group=="balance")op="info";
    if(group=="buy"||group=="sell")op="trade";
-   if(await m_Permissions.CheckPermissionAsync(context.Actor,"UTowny:"+(group=="utowny"?"admin":"commands."+group+((group=="balance"||group=="buy"||group=="sell")?"":"."+op)))!=PermissionGrantResult.Grant)return m_Text["permission_denied"];
+   var permission=CommandPermissions.Resolve(group,op);
+   if(permission==null)return m_Text["syntax"];
+   if(await m_Permissions.CheckPermissionAsync(context.Actor,permission)!=PermissionGrantResult.Grant)return m_Text["permission_denied"];
    var user=context.Actor as UnturnedUser;if(user==null&&group!="utowny")return m_Text["player_only"];
    var id=new PlayerId(user?.Player.SteamId.m_SteamID??0);GridCoord grid=default;TownSpawn? position=null;
    await UniTask.SwitchToMainThread();

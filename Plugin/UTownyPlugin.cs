@@ -22,7 +22,7 @@ public sealed class UTownyPlugin:OpenModUnturnedPlugin
   await UniTask.SwitchToMainThread();m_Interactions.Start();
   var online=m_Users.GetOnlineUsers().Select(u=>new PlayerId(u.Player.SteamId.m_SteamID)).ToArray();
   foreach(var id in online)await m_Playtime.PlayerConnectedAsync(id);
-  m_Permissions.RegisterPermission(this,"admin","UTowny administrator commands");m_Permissions.RegisterPermission(this,"admin.bypass","Temporary protection bypass");
+  UTowny.Commands.CommandPermissions.Register(m_Permissions,this);
   m_Protection.Ready=true;m_Loop=Task.Run(()=>RunAsync(m_Stop.Token));m_Log.LogInformation("UTowny loaded; schema and persistent timers ready");
   }
   catch
