@@ -1,4 +1,4 @@
-# UTowny 1.0.0-rc.2
+# UTowny 1.0.0-rc.3
 
 UTowny is one OpenMod gameplay plugin (`UTowny.dll`) for Unturned. It provides persistent towns, grid claims, private plots, virtual currency, a Scrap shop, town spawns, taxes, upkeep, nations, alliances and consensual PvP wars.
 
@@ -22,7 +22,7 @@ Release candidate. GitHub Actions compiles the source and packages the DLL. SQL 
 5. Grant the OpenMod permissions described in `permissions.md`. Normal players receive no admin permissions from UTowny.
 6. Configure claim-tool item and effect IDs if you want the visual claim tool. Commands remain available without these assets.
 
-If your platform cannot resolve the native SQLite library beside the provider DLL, install the matching native library into the server's native library search directory. Check startup on staging before allowing players to create towns. Do not copy Unturned, Unity or OpenMod reference assemblies from NuGet into the server.
+On Windows, also copy `e_sqlite3.dll` from the Windows x64 bundle beside the server executable (`Unturned.exe`), then fully restart the server process. On Linux, ensure `libe_sqlite3.so` is on the server native library search path. Check startup on staging before allowing players to create towns. Do not copy Unturned, Unity or OpenMod reference assemblies from NuGet into the server.
 
 ## Configuration and gameplay
 

@@ -39,3 +39,5 @@ finally
     SqliteConnection.ClearAllPools();
     if (Directory.Exists(directory)) Directory.Delete(directory, true);
 }
+
+await DispatchRegression.RunAsync();

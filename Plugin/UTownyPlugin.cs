@@ -1,4 +1,4 @@
-using Cysharp.Threading.Tasks;using Microsoft.Extensions.Logging;using Microsoft.Extensions.Localization;using Microsoft.Extensions.Options;
+using UTowny.Utilities;using Cysharp.Threading.Tasks;using Microsoft.Extensions.Logging;using Microsoft.Extensions.Localization;using Microsoft.Extensions.Options;
 using OpenMod.API.Permissions;using OpenMod.Unturned.Plugins;using OpenMod.Unturned.Users;using Steamworks;
 using UTowny.Caching;using UTowny.Configuration;using UTowny.Domain.Common;using UTowny.Persistence.Database;using UTowny.Services;using UTowny.Protection;
 [assembly: OpenMod.API.Plugins.PluginMetadata("UTowny", DisplayName = "UTowny")]
@@ -23,7 +23,7 @@ public sealed class UTownyPlugin:OpenModUnturnedPlugin
   var online=m_Users.GetOnlineUsers().Select(u=>new PlayerId(u.Player.SteamId.m_SteamID)).ToArray();
   foreach(var id in online)await m_Playtime.PlayerConnectedAsync(id);
   m_Permissions.RegisterPermission(this,"admin","UTowny administrator commands");m_Permissions.RegisterPermission(this,"admin.bypass","Temporary protection bypass");
-  m_Protection.Ready=true;m_Loop=RunAsync(m_Stop.Token);m_Log.LogInformation("UTowny loaded; schema and persistent timers ready");
+  m_Protection.Ready=true;m_Loop=Task.Run(()=>RunAsync(m_Stop.Token));m_Log.LogInformation("UTowny loaded; schema and persistent timers ready");
   }
   catch
   {
@@ -35,21 +35,48 @@ public sealed class UTownyPlugin:OpenModUnturnedPlugin
   var ticks=0;
   while(!token.IsCancellationRequested)
   {
-   try{await Task.Delay(TimeSpan.FromSeconds(1),token);await m_Tool.ClearExpiredAsync();if(++ticks%10==0){await m_Playtime.CheckpointAsync(token);await Notify(await m_Scheduled.ProcessAsync());}}
+   try{await Task.Delay(TimeSpan.FromSeconds(1),token).ConfigureAwait(false);await m_Tool.ClearExpiredAsync(token:token).ConfigureAwait(false);if(++ticks%10==0){await m_Playtime.CheckpointAsync(token).ConfigureAwait(false);await Notify(await m_Scheduled.ProcessAsync().ConfigureAwait(false),token).ConfigureAwait(false);}}
    catch(OperationCanceledException)when(token.IsCancellationRequested){break;}
    catch(Exception ex){m_Log.LogError(ex,"UTowny periodic processing failed; persistent deadlines will be retried");}
   }
  }
- private async Task Notify(IReadOnlyList<(PlayerId Player,string Key,long Amount)> notices)
+ private async Task Notify(IReadOnlyList<(PlayerId Player,string Key,long Amount)> notices,CancellationToken token=default)
  {
-  await UniTask.SwitchToMainThread();
-  foreach(var n in notices){await UniTask.SwitchToMainThread();var user=m_Users.FindUser(new CSteamID(n.Player.Value));if(user!=null)await user.PrintMessageAsync(m_Text[n.Key,new {Amount=n.Amount}]);}
+  foreach(var n in notices)
+  {
+   Task delivery=Task.CompletedTask;
+   await UnityDispatch.RunAsync(()=>{var user=m_Users.FindUser(new CSteamID(n.Player.Value));if(user!=null)delivery=user.PrintMessageAsync(m_Text[n.Key,new {Amount=n.Amount}]);},token).ConfigureAwait(false);
+   await delivery.ConfigureAwait(false);
+  }
+ }
+ protected override ValueTask<bool> OnDispose()
+ {
+  m_Log.LogInformation("UTowny disposal started");
+  return base.OnDispose();
  }
  protected override async UniTask OnUnloadAsync()
  {
-  m_Protection.Ready=false;m_Stop?.Cancel();if(m_Loop!=null)await m_Loop;
-  await UniTask.SwitchToMainThread();m_Interactions.Dispose();await m_Tool.ClearExpiredAsync(true);
-  await m_Queue.DrainAsync();
-  await m_Gate.CloseAsync(()=>m_Playtime.FlushAllAsync());m_Stop?.Dispose();m_Log.LogInformation("UTowny unloaded");
+  m_Log.LogInformation("UTowny unload: stopping periodic work");
+  m_Protection.Ready=false;m_Stop?.Cancel();
+  if(m_Loop!=null)await AwaitUnloadStep(m_Loop,"periodic work").ConfigureAwait(false);
+  m_Log.LogInformation("UTowny unload: removing interaction patches");
+  m_Interactions.Dispose();
+  m_Log.LogInformation("UTowny unload: draining queued events");
+  await AwaitUnloadStep(m_Queue.DrainAsync(),"queued events").ConfigureAwait(false);
+  m_Log.LogInformation("UTowny unload: flushing playtime");
+  await AwaitUnloadStep(m_Gate.CloseAsync(()=>m_Playtime.FlushAllAsync()),"playtime flush").ConfigureAwait(false);
+  // Cosmetic cleanup must not indefinitely block disposal if Unity stops pumping.
+  using(var cleanup=new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+  {
+   try{await m_Tool.ClearExpiredAsync(true,cleanup.Token).ConfigureAwait(false);}
+   catch(OperationCanceledException)when(cleanup.IsCancellationRequested){m_Log.LogWarning("UTowny unload: skipped visual cleanup because the game thread did not respond");}
+  }
+  m_Stop?.Dispose();m_Log.LogInformation("UTowny unloaded");
+ }
+ private async Task AwaitUnloadStep(Task work,string step)
+ {
+  while(await Task.WhenAny(work,Task.Delay(TimeSpan.FromSeconds(10))).ConfigureAwait(false)!=work)
+   m_Log.LogWarning("UTowny unload is still waiting for {Step}",step);
+  await work.ConfigureAwait(false);
  }
 }

@@ -31,3 +31,7 @@ Use a disposable server/database and at least two towns with separate resident a
 ## rc.2 startup regression
 
 CI opens the actual SQLite connection factory before any OpenMod plugin exists, checks foreign keys, and reopens the database to verify persistence. On a staging server, confirm startup reaches `UTowny loaded; schema and persistent timers ready`, then restart with existing towns and overdue timers. The automated test does not replace an OpenMod/Mono server smoke test.
+
+## rc.3 reload candidate
+
+CI verifies cancellation of queued game-thread work without a pumping thread, no stale action after cancellation, and completion of already-running work before disposal. The periodic loop starts on the thread pool, uses cancellable visual dispatch, and avoids Unity dispatch for empty notifications/effects. Unload logs each drain/flush stage and reports waits every ten seconds; persistence is never abandoned on a timeout. Cosmetic cleanup alone may be cancelled after five seconds. Confirm `openmod reload` on the actual Windows server: unload completes, the plugin reloads, towns/balances persist, and repeating reload creates no duplicate timer or interaction hooks. Test with active claim visuals and connected players as well as an empty server.

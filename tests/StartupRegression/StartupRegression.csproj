@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../Utilities/CancellableDispatch.cs" Link="CancellableDispatch.cs" />
     <Compile Include="../../Persistence/Database/DatabaseConnectionFactory.cs" Link="DatabaseConnectionFactory.cs" />
     <Compile Include="../../Configuration/UTownyOptions.cs" Link="UTownyOptions.cs" />
     <Compile Include="../../Configuration/AdditionalOptions.cs" Link="AdditionalOptions.cs" />

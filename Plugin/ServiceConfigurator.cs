@@ -22,7 +22,7 @@ public sealed class ServiceConfigurator : IPluginContainerConfigurator
   var validation = new ConfigValidator().Validate(null, options);
   if (validation.Failed) throw new InvalidOperationException(validation.FailureMessage);
   context.ContainerBuilder.RegisterInstance(Options.Create(options)).As<IOptions<UTownyOptions>>();
-  context.ContainerBuilder.RegisterType<UTowny.Protection.InteractionAdapter>().SingleInstance();
+  context.ContainerBuilder.RegisterType<UTowny.Protection.InteractionAdapter>().SingleInstance().ExternallyOwned();
   context.ContainerBuilder.RegisterType<UTowny.Visualization.ClaimToolService>().SingleInstance();
   context.ContainerBuilder.RegisterType<DomainEventPublisher>().SingleInstance();
   context.ContainerBuilder.RegisterType<ConfigurationService>().SingleInstance();

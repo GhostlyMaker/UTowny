@@ -21,9 +21,10 @@ public sealed class ClaimToolService
   }
   m_Visible[id]=now.AddSeconds(m_Options.Value.Visualization.DurationSeconds);return Result.Ok("claim_shown");
  }
- public async Task ClearExpiredAsync(bool all=false)
+ public async Task ClearExpiredAsync(bool all=false,CancellationToken token=default)
  {
-  await UniTask.SwitchToMainThread();foreach(var pair in m_Visible.ToArray())if(all||pair.Value<=DateTime.UtcNow){EffectManager.askEffectClearByID(m_Options.Value.Visualization.EffectAssetId,new CSteamID(pair.Key));m_Visible.TryRemove(pair.Key,out _);}
+  if(m_Visible.IsEmpty)return;
+  await UTowny.Utilities.UnityDispatch.RunAsync(()=>{foreach(var pair in m_Visible.ToArray())if(all||pair.Value<=DateTime.UtcNow){EffectManager.askEffectClearByID(m_Options.Value.Visualization.EffectAssetId,new CSteamID(pair.Key));m_Visible.TryRemove(pair.Key,out _);}},token).ConfigureAwait(false);
  }
 }
 public sealed class ClaimToolListener:IEventListener<UnturnedPlayerPluginKeyStateChangedEvent>
