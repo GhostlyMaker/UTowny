@@ -14,6 +14,8 @@ public sealed class UTownyPlugin:OpenModUnturnedPlugin
  {m_Queue=queue;m_Tool=tool;m_Migrator=migrator;m_Extended=extended;m_Cache=cache;m_Playtime=playtime;m_Scheduled=scheduled;m_Wars=wars;m_Protection=protection;m_Interactions=interactions;m_Users=users;m_Text=text;m_Log=log;m_Teleport=teleport;m_Permissions=permissions;m_Gate=gate;}
  protected override async UniTask OnLoadAsync()
  {
+  try
+  {
   await Task.Run(async()=>{await m_Migrator.MigrateAsync();await m_Extended.InitializeAsync();await m_Cache.RebuildAsync();await m_Wars.RefreshAsync();});
   await Notify(await m_Scheduled.ProcessAsync());
   m_Stop=new CancellationTokenSource();m_Teleport.Token=m_Stop.Token;
@@ -22,6 +24,11 @@ public sealed class UTownyPlugin:OpenModUnturnedPlugin
   foreach(var id in online)await m_Playtime.PlayerConnectedAsync(id);
   m_Permissions.RegisterPermission(this,"admin","UTowny administrator commands");m_Permissions.RegisterPermission(this,"admin.bypass","Temporary protection bypass");
   m_Protection.Ready=true;m_Loop=RunAsync(m_Stop.Token);m_Log.LogInformation("UTowny loaded; schema and persistent timers ready");
+  }
+  catch
+  {
+   m_Protection.Ready=false;m_Stop?.Cancel();await UniTask.SwitchToMainThread();m_Interactions.Dispose();throw;
+  }
  }
  private async Task RunAsync(CancellationToken token)
  {
@@ -36,7 +43,7 @@ public sealed class UTownyPlugin:OpenModUnturnedPlugin
  private async Task Notify(IReadOnlyList<(PlayerId Player,string Key,long Amount)> notices)
  {
   await UniTask.SwitchToMainThread();
-  foreach(var n in notices){var user=m_Users.FindUser(new CSteamID(n.Player.Value));if(user!=null)await user.PrintMessageAsync(m_Text[n.Key,new {Amount=n.Amount}]);}
+  foreach(var n in notices){await UniTask.SwitchToMainThread();var user=m_Users.FindUser(new CSteamID(n.Player.Value));if(user!=null)await user.PrintMessageAsync(m_Text[n.Key,new {Amount=n.Amount}]);}
  }
  protected override async UniTask OnUnloadAsync()
  {

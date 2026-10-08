@@ -9,7 +9,7 @@ public sealed class ShopService:IShopService
  {
   if(!m_Options.Value.Shop.Items.TryGetValue(key,out var spec))return Result.Fail("shop_item_missing");
   var player=user.Player.Player;var id=user.Player.SteamId.m_SteamID;var trade=Guid.NewGuid().ToString("N");
-  await UniTask.SwitchToMainThread();if(player==null||player.life.isDead)return Result.Fail("invalid_player");
+  await UniTask.SwitchToMainThread();if(player==null||player.life.isDead||!Provider.clients.Any(c=>c.player==player))return Result.Fail("invalid_player");
   var inv=player.inventory;var owned=new List<(byte Page,Item Item)>();
   for(byte page=2;page<PlayerInventory.STORAGE;page++)for(byte index=0;index<inv.getItemCount(page);index++){var item=inv.getItem(page,index).item;if(item.id==spec.AssetId)owned.Add((page,item));}
   int count;if(quantity=="all"&&!buy)count=owned.Sum(x=>(int)x.Item.amount);else if(!int.TryParse(quantity,out count))return Result.Fail("invalid_amount");
@@ -27,11 +27,11 @@ public sealed class ShopService:IShopService
   if(!reserved.Success)return reserved;
   await UniTask.SwitchToMainThread();
   // No await between revalidation, inventory mutation and save: client requests cannot interleave.
-  var success=player!=null&&!player.life.isDead;var added=new List<Item>();
+  var success=player!=null&&!player.life.isDead&&Provider.clients.Any(c=>c.player==player);var added=new List<Item>();
   if(success&&buy)
   {
    if(Assets.find(EAssetType.ITEM,spec.AssetId) is not ItemAsset)success=false;
-   else for(int i=0;i<count;i++){var item=new Item(spec.AssetId,(byte)1,(byte)100);if(!inv.tryAddItem(item,false)){success=false;break;}added.Add(item);}
+   else for(int i=0;i<count;i++){var item=new Item(spec.AssetId,(byte)1,(byte)100);if(!inv.tryAddItemAuto(item,false,false,false,false)){success=false;break;}added.Add(item);}
    if(!success)for(byte page=2;page<PlayerInventory.STORAGE;page++)for(int index=inv.getItemCount(page)-1;index>=0;index--)if(added.Contains(inv.getItem(page,(byte)index).item))inv.removeItem(page,(byte)index);
   }
   else if(success)
