@@ -5,5 +5,5 @@ public sealed class NationCommand:Command
 {
  private readonly CommandRouter m_Router;
  public NationCommand(IServiceProvider sp,CommandRouter router):base(sp)=>m_Router=router;
- protected override async Task OnExecuteAsync()=>await PrintAsync(await m_Router.ExecuteAsync(Context,"nation"));
+ protected override async Task OnExecuteAsync()=>await PrintAsync(await m_Router.ExecuteAsync(Context,"nation"),UTowny.Utilities.UTownyChat.Color);
 }

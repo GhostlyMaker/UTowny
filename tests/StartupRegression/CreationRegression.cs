@@ -54,6 +54,17 @@ internal static class CreationRegression
                 throw new Exception("Minimum balance check failed or debited a rejected creation");
             await cache.RebuildAsync();
             if (towns.GetTown(admin)?.Name != "AdminTown") throw new Exception("Admin town was not persisted");
+            var economy=new EconomyService(db,players,options,gate);
+            await players.EnsureAsync(new PlayerId(7),1000);await players.EnsureAsync(new PlayerId(8),0);
+            if(!(await economy.TransferAsync(new(7),new(8),250)).Success || await economy.GetBalanceAsync(new(7))!=750 || await economy.GetBalanceAsync(new(8))!=250)throw new Exception("Payment did not transfer funds");
+            if((await economy.TransferAsync(new(7),new(8),751)).Success || await economy.GetBalanceAsync(new(7))!=750 || await economy.GetBalanceAsync(new(8))!=250)throw new Exception("Overdraft payment altered balances");
+            if((await economy.TransferAsync(new(7),new(7),10)).Success || (await economy.TransferAsync(new(7),new(8),0)).Success || (await economy.TransferAsync(new(7),new(8),-1)).Success)throw new Exception("Invalid payment accepted");
+            await players.EnsureAsync(new PlayerId(9),long.MaxValue);
+            if((await economy.TransferAsync(new(7),new(9),1)).Success || await economy.GetBalanceAsync(new(7))!=750)throw new Exception("Receiver overflow did not roll back sender debit");
+            var simultaneous=await Task.WhenAll(economy.TransferAsync(new(7),new(8),500),economy.TransferAsync(new(7),new(8),500));
+            if(simultaneous.Count(x=>x.Success)!=1 || await economy.GetBalanceAsync(new(7))!=250 || await economy.GetBalanceAsync(new(8))!=750)throw new Exception("Concurrent transfers overspent funds");
+            if(UTowny.Utilities.UTownyChat.Color.R!=0 || UTowny.Utilities.UTownyChat.Color.G!=174 || UTowny.Utilities.UTownyChat.Color.B!=98)throw new Exception("Chat color incorrect");
+            Console.WriteLine("PASS: payments preserve funds, prevent overdrafts/self/invalid amounts, roll back overflow, and serialize concurrent transfers; chat color is #00AE62.");
             Console.WriteLine("PASS: admin creates with zero funds/playtime without charge; regular playtime, balance and fee checks remain; names, membership and persistence verified against SQLite.");
         }
         finally

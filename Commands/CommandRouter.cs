@@ -10,12 +10,13 @@ using UTowny.Caching;using UTowny.Domain.Claims;using UTowny.Domain.Common;using
 namespace UTowny.Commands;
 public sealed class CommandRouter
 {
+ private readonly IUnturnedUserDirectory m_Users;
  private readonly ConfigurationService m_Configuration;
  private readonly UTowny.Visualization.ClaimToolService m_Tool;
  private readonly IShopService m_Shop;private readonly TeleportService m_Teleport;
  private readonly ITownService m_Towns;private readonly ITownManagementService m_Manage;private readonly IEconomyService m_Economy;private readonly IClaimService m_Claims;private readonly IPlotService m_Plots;private readonly IGridService m_Grid;private readonly IWorldStateCache m_Cache;private readonly INationService m_Nations;private readonly IWarService m_Wars;private readonly LandManagementService m_Land;private readonly AdminService m_Admin;private readonly ProtectionService m_Protection;private readonly IPermissionChecker m_Permissions;private readonly IStringLocalizer m_Text;private readonly ILogger<CommandRouter> m_Log;
- public CommandRouter(ITownService towns,ITownManagementService manage,IEconomyService economy,IClaimService claims,IPlotService plots,IGridService grid,IWorldStateCache cache,INationService nations,IWarService wars,LandManagementService land,AdminService admin,ProtectionService protection,IPermissionChecker permissions,IStringLocalizer text,ILogger<CommandRouter> log,IShopService shop,TeleportService teleport,UTowny.Visualization.ClaimToolService tool,ConfigurationService configuration)
- {m_Configuration=configuration;m_Tool=tool;m_Shop=shop;m_Teleport=teleport;m_Towns=towns;m_Manage=manage;m_Economy=economy;m_Claims=claims;m_Plots=plots;m_Grid=grid;m_Cache=cache;m_Nations=nations;m_Wars=wars;m_Land=land;m_Admin=admin;m_Protection=protection;m_Permissions=permissions;m_Text=text;m_Log=log;}
+ public CommandRouter(ITownService towns,ITownManagementService manage,IEconomyService economy,IClaimService claims,IPlotService plots,IGridService grid,IWorldStateCache cache,INationService nations,IWarService wars,LandManagementService land,AdminService admin,ProtectionService protection,IPermissionChecker permissions,IStringLocalizer text,ILogger<CommandRouter> log,IShopService shop,TeleportService teleport,UTowny.Visualization.ClaimToolService tool,ConfigurationService configuration,IUnturnedUserDirectory users)
+ {m_Users=users;m_Configuration=configuration;m_Tool=tool;m_Shop=shop;m_Teleport=teleport;m_Towns=towns;m_Manage=manage;m_Economy=economy;m_Claims=claims;m_Plots=plots;m_Grid=grid;m_Cache=cache;m_Nations=nations;m_Wars=wars;m_Land=land;m_Admin=admin;m_Protection=protection;m_Permissions=permissions;m_Text=text;m_Log=log;}
  public async Task<string> ExecuteAsync(ICommandContext context,string group)
  {
   try
@@ -42,6 +43,21 @@ public sealed class CommandRouter
    var targetPlayer=(op=="invite"||op=="kick"||op=="promote"||op=="demote"||op=="mayor")&&group=="town"?PlayerArg(Arg(1)):default;
    Result result=Result.Fail("syntax");
    if(group=="balance")return m_Text["balance_value",new {Value=await m_Economy.GetBalanceAsync(id)}];
+   if(group=="pay")
+   {
+    if(args.Length!=2)return Help(group);
+    var recipient=PlayerArg(Arg(0));var amount=long.Parse(Arg(1));
+    var transfer=await m_Economy.TransferAsync(id,recipient,amount);
+    if(!transfer.Success)return Message(transfer.Code,transfer.Code=="pay_self"?"You cannot pay yourself.":m_Text[transfer.Code].Value);
+    try
+    {
+     Task delivery=Task.CompletedTask;
+     await UTowny.Utilities.UnityDispatch.RunAsync(()=>{var receiver=m_Users.FindUser(new Steamworks.CSteamID(recipient.Value));if(receiver!=null)delivery=UTowny.Utilities.UTownyChat.SendAsync(receiver,Message("pay_received",$"Received {amount} from {context.Actor.FullActorName}.",new {Amount=amount,Player=context.Actor.FullActorName}));});
+     await delivery;
+    }
+    catch(Exception ex){m_Log.LogWarning(ex,"Payment committed but recipient notification failed");}
+    return Message("pay_sent",$"Sent {amount} to {Arg(0)}. Your balance: {transfer.Value}.",new {Amount=amount,Player=Arg(0),Balance=transfer.Value});
+   }
    if(group=="buy"||group=="sell"){var trade=await m_Shop.TradeAsync(user!,Arg(0),Arg(1),group=="buy");return m_Text[trade.Code];}
    if(group=="town")
    {
@@ -94,6 +110,12 @@ public sealed class CommandRouter
    }
    else if(group=="utowny")
    {
+    if(op=="balance"||op=="addbalance"||op=="removebalance")
+    {
+     if(args.Length!=3)return Message("admin_balance_usage","Usage: /utowny addbalance <player name|Steam64> <amount>. For towns: /utowny addtownbalance <town> <amount>.");
+     var target=PlayerArg(Arg(1));var changed=await m_Admin.ExecuteAsync(context.Actor.Id,op,target.Value.ToString(),Arg(2),grid);
+     return changed.Success?Message("admin_balance_updated",$"Admin balance update completed: {op} {Arg(2)} for {Arg(1)}. Your own balance was not charged.",new {Action=op,Amount=Arg(2),Player=Arg(1)}):m_Text[changed.Code];
+    }
     if(op=="bypass"){if(user==null)return m_Text["player_only"];if(await m_Permissions.CheckPermissionAsync(context.Actor,"UTowny:admin.bypass")!=PermissionGrantResult.Grant)return m_Text["permission_denied"];m_Protection.SetBypass(id,Toggle(Arg(1))==1);m_Log.LogWarning("Admin {Actor} changed protection bypass to {Mode}",context.Actor.Id,Arg(1));return m_Text["bypass_changed"];}
     if(op=="inspect"||op=="debug")return m_Text["list_value",new {Value=$"{grid}: {m_Cache.GetClaim(grid)}"}];
     if(op=="reload"){var reload=await m_Configuration.ReloadAsync();m_Log.LogWarning("Admin {Actor} reloaded configuration: {Result}",context.Actor.Id,reload.Code);return m_Text[reload.Code];}
@@ -116,13 +138,14 @@ public sealed class CommandRouter
  {var value=m_Text[key,args];return value.ResourceNotFound?fallback:value.Value;}
  private string Help(string group)=>Message(group+"_help",group switch
  {
-  "town"=>"Town commands: /t create <name> (or /t new <name>), /t info [name], /t list, /t invite <player>, /t accept <town>, /t deposit <amount>, /t claim, /t spawn. Example: /t create VazerTown",
+  "town"=>"Town commands: /t create <name> (or /t new <name>), /t info [name], /t list, /t invite <player>, /t accept <town>, /t deposit <amount>, /t claim, /t setspawn, /t spawn. Example: /t create VazerTown",
   "nation"=>"Nation commands: /n create <name>, /n info, /n members, /n invite <town>, /n accept <nation>. You must belong to a town first.",
   "plot"=>"Plot commands: /plot info, /plot buy, /plot forsale <price>, /plot notforsale, /plot permissions <action> on|off.",
   "war"=>"War commands: /war request|accept|decline|cancel <town>, /war info, /war list.",
+  "pay"=>"Usage: /pay <player name|Steam64> <amount>. This transfers money from your own balance.",
   "buy"=>"Usage: /buy <item> <amount>. Example: /buy scrap 1",
   "sell"=>"Usage: /sell <item> <amount|all>. Example: /sell scrap all",
-  "utowny"=>"Admin commands: /utowny info <town>, /utowny balance <Steam64> <amount>, /utowny reload, /utowny bypass on|off. See COMMANDS.md for all admin actions.",
+  "utowny"=>"Admin commands: /utowny info <town>, /utowny addbalance <player|Steam64> <amount>, /utowny addtownbalance <town> <amount>, /utowny reload, /utowny bypass on|off. See COMMANDS.md for all admin actions.",
   _=>"Use /t help for town commands."
  });
  private sealed class CommandFeedbackException:Exception

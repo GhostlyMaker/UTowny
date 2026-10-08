@@ -45,7 +45,7 @@ public sealed class UTownyPlugin:OpenModUnturnedPlugin
   foreach(var n in notices)
   {
    Task delivery=Task.CompletedTask;
-   await UnityDispatch.RunAsync(()=>{var user=m_Users.FindUser(new CSteamID(n.Player.Value));if(user!=null)delivery=user.PrintMessageAsync(m_Text[n.Key,new {Amount=n.Amount}]);},token).ConfigureAwait(false);
+   await UnityDispatch.RunAsync(()=>{var user=m_Users.FindUser(new CSteamID(n.Player.Value));if(user!=null)delivery=UTownyChat.SendAsync(user,m_Text[n.Key,new {Amount=n.Amount}]);},token).ConfigureAwait(false);
    await delivery.ConfigureAwait(false);
   }
  }

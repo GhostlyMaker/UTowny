@@ -17,3 +17,5 @@ The held claim tool requires `UTowny:commands.town.claim`; claiming still requir
 UTowny registers all of the gameplay action nodes above during startup. Root command permissions are registered by OpenMod. An unknown action returns syntax help instead of checking an arbitrary unregistered permission. Registration alone does not grant the permission to any role.
 
 `UTowny:admin` also exempts the caller from town-creation playtime, minimum balance and the creation fee. `/t new` uses the existing `UTowny:commands.town.create` permission. `/towny` is an alias for the town root. `/t help` uses town info permission.
+
+Player transfers require `UTowny:commands.pay`. They never use the admin money-creation commands. Admin balance set/add/remove accept online player names or Steam64 IDs and remain protected by the admin root and `UTowny:admin`.

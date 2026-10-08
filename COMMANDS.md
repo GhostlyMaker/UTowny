@@ -52,3 +52,13 @@ All require the admin permission in addition to the root command permission. Bal
 - `/utowny resolve <trade-id> completed|cancelled` — reconcile only after verifying saved inventory; see README.
 
 `/towny` is an alias of `/town` and `/t`. Use `/t help` for quick help; `/t` also shows help when you have no town. Creation always needs a valid, unused name and a player who does not already belong to a town. Admin creation does not exempt the resulting town from ordinary upkeep.
+
+## Chat and money (rc.6)
+
+UTowny chat uses #00AE62. Spawn teleport sends a countdown during the configured warmup, followed by the success or cancellation message.
+
+- `/pay <online player name|Steam64> <amount>` transfers your existing money to another known player. Requires `UTowny:commands.pay`. Offline players can be paid by Steam64 if they already have a balance record. Names must match exactly; quote names containing spaces.
+- `/utowny addbalance <online player name|Steam64> <amount>` creates money for the target balance without charging the caller. Requires both `UTowny:commands.utowny` and `UTowny:admin`.
+- `/utowny addtownbalance <town> <amount>` creates money for a town treasury under the same admin checks.
+
+Player transfers reject self-payment, nonpositive amounts, overdrafts, unknown recipients, and receiver overflow. Debit and credit commit together.

@@ -36,7 +36,7 @@ internal static class PermissionRegression
         }
         if (registry.FindPermission("UTowny:admin.bypass") == null || CommandPermissions.Resolve("utowny", "reload") != "UTowny:admin")
             throw new Exception("Admin permissions missing");
-        foreach (var root in new[] { "balance", "buy", "sell" })
+        foreach (var root in new[] { "balance", "buy", "sell", "pay" })
             if (CommandPermissions.Resolve(root, "info") != "UTowny:commands." + root) throw new Exception("Economy root permission changed");
         CommandPermissions.Register(registry, plugin);
         if (registry.GetPermissions(plugin).Count != 48) throw new Exception("Permission registration is not idempotent");

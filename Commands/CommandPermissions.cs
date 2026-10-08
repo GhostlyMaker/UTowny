@@ -35,7 +35,7 @@ public static class CommandPermissions
         action = NormalizeAction(group, action);
         if (action == "help") action = "info";
         if (group == "utowny") return "UTowny:admin";
-        if (group == "balance" || group == "buy" || group == "sell") return "UTowny:commands." + group;
+        if (group == "balance" || group == "buy" || group == "sell" || group == "pay") return "UTowny:commands." + group;
         return Actions.TryGetValue(group, out var actions) && actions.Contains(action)
             ? $"UTowny:commands.{group}.{action}"
             : null;

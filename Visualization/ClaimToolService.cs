@@ -44,8 +44,8 @@ public sealed class ClaimToolListener:IEventListener<UnturnedPlayerPluginKeyStat
   try
   {
    var user=m_Users.GetUser(e.Player.Player);if(await m_Permissions.CheckPermissionAsync(user,"UTowny:commands.town.claim")!=PermissionGrantResult.Grant)return;
-   if(e.Key==o.PreviewKey){var shown=await m_Tool.ShowAsync(user);await user.PrintMessageAsync(m_Text[shown.Code]);}
-   else if(e.Key==o.ClaimKey){await UniTask.SwitchToMainThread();var p=e.Player.Player.transform.position;var grid=m_Grid.FromWorld(Level.info.name,p.x,p.z);var result=await m_Claims.ClaimAsync(new(e.Player.SteamId.m_SteamID),grid);await user.PrintMessageAsync(m_Text[result.Code]);}
+   if(e.Key==o.PreviewKey){var shown=await m_Tool.ShowAsync(user);await UTowny.Utilities.UTownyChat.SendAsync(user,m_Text[shown.Code]);}
+   else if(e.Key==o.ClaimKey){await UniTask.SwitchToMainThread();var p=e.Player.Player.transform.position;var grid=m_Grid.FromWorld(Level.info.name,p.x,p.z);var result=await m_Claims.ClaimAsync(new(e.Player.SteamId.m_SteamID),grid);await UTowny.Utilities.UTownyChat.SendAsync(user,m_Text[result.Code]);}
   }
   catch(Exception ex){m_Log.LogError(ex,"Claim tool operation failed");}
  }

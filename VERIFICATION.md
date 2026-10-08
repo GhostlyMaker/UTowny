@@ -43,3 +43,7 @@ CI uses OpenMod 3.8.10 PermissionRegistry to verify every documented gameplay su
 ## rc.5 creation and command feedback
 
 CI runs the actual town service, migrations, mutation gate, repositories and cache against SQLite. Admin creation with zero funds/playtime succeeds without charging; normal creation still checks playtime, minimum balance, and charges the configured fee. Duplicate names, existing membership, invalid names and persistence are verified. Alias permission mapping is tested. On the server test `/t`, `/t new`, `/town create`, `/towny help`, `/t new VazerTown`, and `/nation` without town membership. New help strings have built-in fallbacks so existing translations.yaml files need not be overwritten. Trusted plugin API callers of CreateAsAdminAsync must authorize the administrator before invoking it.
+
+## rc.6 chat, countdown and payments
+
+CI tests real SQLite transfers for conservation of funds, overdrafts, invalid/self payments, overflow rollback, and concurrent attempts to overspend. It checks RGB 0/174/98 and the pay permission mapping. On the Windows server verify countdown and final/cancel messages in green, all command/scheduled/tool messages in green, admin player/town credits, regular-user denial of admin credits, and recipient notification for `/pay`. Test warmup 0 and movement/damage cancellation. Countdown and visual color require in-game confirmation.
