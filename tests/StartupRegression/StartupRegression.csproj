@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../Services/TeleportActivity.cs" Link="Services/TeleportActivity.cs" />
     <Compile Include="../../Services/EconomyService.cs" Link="Services/EconomyService.cs" />
     <Compile Include="../../Utilities/UTownyChat.cs" Link="Utilities/UTownyChat.cs" />
     <Compile Include="../../Services/TownService.cs" Link="Services/TownService.cs" />

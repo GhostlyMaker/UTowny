@@ -47,3 +47,7 @@ CI runs the actual town service, migrations, mutation gate, repositories and cac
 ## rc.6 chat, countdown and payments
 
 CI tests real SQLite transfers for conservation of funds, overdrafts, invalid/self payments, overflow rollback, and concurrent attempts to overspend. It checks RGB 0/174/98 and the pay permission mapping. On the Windows server verify countdown and final/cancel messages in green, all command/scheduled/tool messages in green, admin player/town credits, regular-user denial of admin credits, and recipient notification for `/pay`. Test warmup 0 and movement/damage cancellation. Countdown and visual color require in-game confirmation.
+
+## rc.7 combat and effect diagnosis
+
+CI covers environmental/self/zero damage, PvP tagging both parties, combat expiry despite recurring environment damage, per-player reset on death/respawn, and zero-duration lock. Server wiring records the actual Damaged event, after protection cancellation, instead of the preliminary Damaging event. Effect previews now use reliable TriggerEffectParameters with upward direction and the requesting player target. Test `/utowny effect 146` in-game; ID existence does not guarantee a visible suitable particle on clients. Verify accepted PvP blocks spawn, blocked PvP does not, environment damage cancels only an active warmup, and respawning clears old locks.

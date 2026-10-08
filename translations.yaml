@@ -88,3 +88,5 @@ pay_received: "Received {Amount} from {Player}."
 pay_help: "Usage: /pay <player name|Steam64> <amount>. This transfers money from your own balance."
 admin_balance_usage: "Usage: /utowny addbalance <player name|Steam64> <amount>. For towns: /utowny addtownbalance <town> <amount>."
 admin_balance_updated: "Admin balance update completed: {Action} {Amount} for {Player}. Your own balance was not charged."
+
+combat_countdown: "You can teleport in {Seconds} seconds after your last PvP hit."

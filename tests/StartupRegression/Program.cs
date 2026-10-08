@@ -45,3 +45,5 @@ await DispatchRegression.RunAsync();
 PermissionRegression.Run();
 
 await CreationRegression.RunAsync();
+
+CombatRegression.Run();

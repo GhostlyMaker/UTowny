@@ -8,7 +8,7 @@ public sealed class ClaimToolService
  {
   await UniTask.SwitchToMainThread();var id=user.Player.SteamId.m_SteamID;var now=DateTime.UtcNow;
   if(m_Last.TryGetValue(id,out var last)&&last.AddSeconds(3)>now)return Result.Fail("tool_cooldown");
-  m_Last[id]=now;var effect=m_Options.Value.Visualization.EffectAssetId;if(effect==0||Assets.find(EAssetType.EFFECT,effect) is not EffectAsset)return Result.Fail("effect_missing");
+  m_Last[id]=now;var effect=m_Options.Value.Visualization.EffectAssetId;if(effect==0||Assets.find(EAssetType.EFFECT,effect) is not EffectAsset asset)return Result.Fail("effect_missing");
   var p=user.Player.Player.transform.position;var grid=m_Grid.FromWorld(Level.info.name,p.x,p.z);var bounds=m_Grid.Bounds(grid);
   // Sixteen client-only markers, no saved world objects. The next scheduler tick clears expired effects.
   EffectManager.askEffectClearByID(effect,user.Player.SteamId);
@@ -17,9 +17,23 @@ public sealed class ClaimToolService
    var t=step/4f;float x,z;
    if(edge==0){x=Mathf.Lerp(bounds.MinX,bounds.MaxX,t);z=bounds.MinZ;}else if(edge==1){x=bounds.MaxX;z=Mathf.Lerp(bounds.MinZ,bounds.MaxZ,t);}else if(edge==2){x=Mathf.Lerp(bounds.MaxX,bounds.MinX,t);z=bounds.MaxZ;}else{x=bounds.MinX;z=Mathf.Lerp(bounds.MaxZ,bounds.MinZ,t);}
    var point=new Vector3(x,p.y+0.2f,z);if(Physics.Raycast(new Vector3(x,p.y+128,z),Vector3.down,out var hit,256))point.y=hit.point.y+0.2f;
-   EffectManager.sendEffect(effect,user.Player.SteamId,point);
+   Send(asset,user,point);
   }
   m_Visible[id]=now.AddSeconds(m_Options.Value.Visualization.DurationSeconds);return Result.Ok("claim_shown");
+ }
+
+ private static void Send(EffectAsset asset,UnturnedUser user,Vector3 point)
+ {
+  var parameters=new TriggerEffectParameters(asset){position=point,direction=Vector3.up,reliable=true,relevantPlayerID=user.Player.SteamId};
+  EffectManager.triggerEffect(parameters);
+ }
+ public async Task<string> TestEffectAsync(UnturnedUser user,ushort id)
+ {
+  await UniTask.SwitchToMainThread();
+  if(id==0||Assets.find(EAssetType.EFFECT,id) is not EffectAsset asset)return $"Effect {id} is not loaded on this server. Check its Type Effect and ID in the asset file.";
+  var aim=user.Player.Player.look.aim;
+  Send(asset,user,aim.position+aim.forward*3f);
+  return $"Effect {id} sent 3 metres in front of you (asset lifetime: {asset.lifetime:0.##} seconds). If nothing appears, it may be audio-only, very brief, or unavailable on the client. This test does not change your configured boundary effect.";
  }
  public async Task ClearExpiredAsync(bool all=false,CancellationToken token=default)
  {

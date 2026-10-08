@@ -62,3 +62,5 @@ UTowny chat uses #00AE62. Spawn teleport sends a countdown during the configured
 - `/utowny addtownbalance <town> <amount>` creates money for a town treasury under the same admin checks.
 
 Player transfers reject self-payment, nonpositive amounts, overdrafts, unknown recipients, and receiver overflow. Debit and credit commit together.
+
+`/utowny effect <effect ID>` tests a loaded effect three metres in front of the administrator and reports the asset lifetime. It does not change visualization config. Combat lock applies to actual damage between different players, not environmental or self-damage. Death and respawn clear that player's combat lock. Damage still cancels an active warmup when configured.

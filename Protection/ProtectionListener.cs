@@ -11,7 +11,7 @@ public sealed class ProtectionListener :
  IEventListener<UnturnedBuildableSalvagingEvent>,IEventListener<UnturnedBuildableTransformingEvent>,
  IEventListener<UnturnedStorageOpeningEvent>,IEventListener<UnturnedPlantHarvestingEvent>,IEventListener<UnturnedSignModifyingEvent>,
  IEventListener<UnturnedVehicleDamagingEvent>,IEventListener<UnturnedPlayerEnteringVehicleEvent>,
- IEventListener<UnturnedVehicleSiphoningEvent>,IEventListener<UnturnedVehicleCarjackingEvent>,IEventListener<UnturnedVehicleLockpickingEvent>,IEventListener<UnturnedVehicleStealingBatteryEvent>,IEventListener<UnturnedPlayerDamagingEvent>
+ IEventListener<UnturnedVehicleSiphoningEvent>,IEventListener<UnturnedVehicleCarjackingEvent>,IEventListener<UnturnedVehicleLockpickingEvent>,IEventListener<UnturnedVehicleStealingBatteryEvent>,IEventListener<UnturnedPlayerDamagingEvent>,IEventListener<UnturnedPlayerDamagedEvent>,IEventListener<UnturnedPlayerDeathEvent>,IEventListener<UnturnedPlayerRevivedEvent>
 {
  private readonly TeleportService m_Teleport;
  private readonly IProtectionService m_Protection;private readonly IGridService m_Grid;
@@ -30,5 +30,9 @@ public sealed class ProtectionListener :
  public Task HandleEventAsync(object? sender,UnturnedVehicleCarjackingEvent e){var p=e.Vehicle.Transform.Position;e.IsCancelled|=!Allowed(e.Instigator.SteamId.m_SteamID,p.X,p.Z,LandAction.Vehicle);return Task.CompletedTask;}
  public Task HandleEventAsync(object? sender,UnturnedVehicleLockpickingEvent e){var p=e.Vehicle.Transform.Position;e.IsCancelled|=!Allowed(e.Instigator.SteamId.m_SteamID,p.X,p.Z,LandAction.Vehicle);return Task.CompletedTask;}
  public Task HandleEventAsync(object? sender,UnturnedVehicleStealingBatteryEvent e){var p=e.Vehicle.Transform.Position;e.IsCancelled|=!Allowed(e.Instigator.SteamId.m_SteamID,p.X,p.Z,LandAction.Vehicle);return Task.CompletedTask;}
- public Task HandleEventAsync(object? sender,UnturnedPlayerDamagingEvent e){if(!e.IsCancelled&&e.DamageAmount>0){m_Teleport.Damaged(e.Player.SteamId.m_SteamID);if(e.Killer.m_SteamID!=0)m_Teleport.Damaged(e.Killer.m_SteamID);}var p=e.Player.Transform.Position;e.IsCancelled|=!m_Protection.CanPvp(new(e.Killer.m_SteamID),new(e.Player.SteamId.m_SteamID),m_Grid.FromWorld(Level.info.name,p.X,p.Z));return Task.CompletedTask;}
+ public Task HandleEventAsync(object? sender,UnturnedPlayerDamagingEvent e){var p=e.Player.Transform.Position;e.IsCancelled|=!m_Protection.CanPvp(new(e.Killer.m_SteamID),new(e.Player.SteamId.m_SteamID),m_Grid.FromWorld(Level.info.name,p.X,p.Z));return Task.CompletedTask;}
+ public Task HandleEventAsync(object? sender,UnturnedPlayerDamagedEvent e){m_Teleport.Damaged(e.Player.SteamId.m_SteamID,e.Killer.m_SteamID,e.DamageAmount);return Task.CompletedTask;}
+ public Task HandleEventAsync(object? sender,UnturnedPlayerDeathEvent e){m_Teleport.ResetLife(e.Player.SteamId.m_SteamID);return Task.CompletedTask;}
+ public Task HandleEventAsync(object? sender,UnturnedPlayerRevivedEvent e){m_Teleport.ResetLife(e.Player.SteamId.m_SteamID);return Task.CompletedTask;}
+
 }

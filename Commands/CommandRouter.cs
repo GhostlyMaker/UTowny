@@ -110,6 +110,7 @@ public sealed class CommandRouter
    }
    else if(group=="utowny")
    {
+    if(op=="effect"){if(user==null)return m_Text["player_only"];if(args.Length!=2)return "Usage: /utowny effect <effect ID>. Example: /utowny effect 146";return await m_Tool.TestEffectAsync(user,ushort.Parse(Arg(1)));}
     if(op=="balance"||op=="addbalance"||op=="removebalance")
     {
      if(args.Length!=3)return Message("admin_balance_usage","Usage: /utowny addbalance <player name|Steam64> <amount>. For towns: /utowny addtownbalance <town> <amount>.");
