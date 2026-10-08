@@ -8,8 +8,9 @@ using UTowny.Persistence.Database;
 namespace UTowny.Services;
 public sealed class ScheduledService
 {
+ private readonly DomainEventPublisher m_Events;private readonly Dictionary<long,DateTime> m_Warned=new();
  private readonly IDatabaseConnectionFactory m_Db;private readonly IWorldStateCache m_Cache;private readonly MutationGate m_Gate;private readonly IOptions<UTownyOptions> m_Options;private readonly IWarService m_Wars;private readonly ILogger<ScheduledService> m_Log;
- public ScheduledService(IDatabaseConnectionFactory db,IWorldStateCache cache,MutationGate gate,IOptions<UTownyOptions> options,IWarService wars,ILogger<ScheduledService> log){m_Db=db;m_Cache=cache;m_Gate=gate;m_Options=options;m_Wars=wars;m_Log=log;}
+ public ScheduledService(IDatabaseConnectionFactory db,IWorldStateCache cache,MutationGate gate,IOptions<UTownyOptions> options,IWarService wars,ILogger<ScheduledService> log,DomainEventPublisher events){m_Events=events;m_Db=db;m_Cache=cache;m_Gate=gate;m_Options=options;m_Wars=wars;m_Log=log;}
  public Task<IReadOnlyList<(PlayerId Player,string Key,long Amount)>> ProcessAsync()=>m_Gate.RunAsync(async()=>
  {
   var notices=new List<(PlayerId,string,long)>();var now=DateTime.UtcNow;var o=m_Options.Value;
@@ -54,9 +55,26 @@ public sealed class ScheduledService
    }
    if(deleted)m_Log.LogWarning("Town {TownId} {Town} deleted for unpaid upkeep",town.Id.Value,town.Name);
   }
+  var oldWars=m_Wars.All.ToArray();
   s.Execute("UPDATE wars SET status=3 WHERE status IN (1,2) AND end_utc<=$0",now.ToString("O"));
   s.Execute("UPDATE wars SET status=2 WHERE status=1 AND start_utc<=$0 AND end_utc>$0",now.ToString("O"));
   s.Execute("DELETE FROM town_invites WHERE expires_utc<=$0; DELETE FROM nation_invites WHERE expires_utc<=$0",now.ToString("O"));
-  s.Commit();await m_Cache.RebuildAsync();await m_Wars.RefreshAsync();return (IReadOnlyList<(PlayerId,string,long)>)notices;
+  s.Commit();await m_Cache.RebuildAsync();await m_Wars.RefreshAsync();
+  foreach(var n in notices)await m_Events.AfterAsync(new UTowny.Api.Events.DomainOperation(n.Item2,n.Item1,Detail:n.Item3.ToString()));
+  foreach(var war in m_Wars.All)
+  {
+   var old=oldWars.FirstOrDefault(w=>w.Id==war.Id);
+   if(old?.Status==war.Status)continue;
+   var key=war.Status==WarStatus.Active?"war_started":war.Status==WarStatus.Ended?"war_ended":null;
+   if(key==null)continue;
+   foreach(var member in m_Cache.GetMembers(war.A).Concat(m_Cache.GetMembers(war.B)))notices.Add((member.PlayerId,key,war.Id));
+   await m_Events.AfterAsync(new UTowny.Api.Events.DomainOperation(key,new PlayerId(0),war.A,war.Id.ToString()));
+  }
+  foreach(var town in m_Cache.GetTowns())if(town.NextUpkeepUtc>now&&town.NextUpkeepUtc<=now.AddHours(1)&&(!m_Warned.TryGetValue(town.Id.Value,out var warned)||warned!=town.NextUpkeepUtc))
+  {
+   var amount=checked(o.Upkeep.BaseAmount+o.Upkeep.PerClaimAmount*m_Cache.GetTownClaims(town.Id).Count+o.Upkeep.PerResidentAmount*m_Cache.GetResidentCount(town.Id));
+   notices.Add((town.MayorId,"upkeep_warning",amount));m_Warned[town.Id.Value]=town.NextUpkeepUtc;
+  }
+  return (IReadOnlyList<(PlayerId,string,long)>)notices;
  });
 }

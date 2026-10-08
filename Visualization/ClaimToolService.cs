@@ -28,10 +28,16 @@ public sealed class ClaimToolService
 }
 public sealed class ClaimToolListener:IEventListener<UnturnedPlayerPluginKeyStateChangedEvent>
 {
+ private readonly BackgroundQueue m_Queue;
  private readonly IOptions<UTownyOptions> m_Options;private readonly IUnturnedUserDirectory m_Users;private readonly IPermissionChecker m_Permissions;private readonly IClaimService m_Claims;private readonly IGridService m_Grid;private readonly ClaimToolService m_Tool;private readonly IStringLocalizer m_Text;private readonly ILogger<ClaimToolListener> m_Log;
- public ClaimToolListener(IOptions<UTownyOptions> options,IUnturnedUserDirectory users,IPermissionChecker permissions,IClaimService claims,IGridService grid,ClaimToolService tool,IStringLocalizer text,ILogger<ClaimToolListener> log){m_Options=options;m_Users=users;m_Permissions=permissions;m_Claims=claims;m_Grid=grid;m_Tool=tool;m_Text=text;m_Log=log;}
- public async Task HandleEventAsync(object? sender,UnturnedPlayerPluginKeyStateChangedEvent e)
+ public ClaimToolListener(IOptions<UTownyOptions> options,IUnturnedUserDirectory users,IPermissionChecker permissions,IClaimService claims,IGridService grid,ClaimToolService tool,IStringLocalizer text,ILogger<ClaimToolListener> log,BackgroundQueue queue){m_Queue=queue;m_Options=options;m_Users=users;m_Permissions=permissions;m_Claims=claims;m_Grid=grid;m_Tool=tool;m_Text=text;m_Log=log;}
+ public Task HandleEventAsync(object? sender,UnturnedPlayerPluginKeyStateChangedEvent e)
  {
+  if(e.State)m_Queue.Enqueue(()=>ExecuteAsync(e));return Task.CompletedTask;
+ }
+ private async Task ExecuteAsync(UnturnedPlayerPluginKeyStateChangedEvent e)
+ {
+  await UniTask.SwitchToMainThread();
   if(!e.State)return;var o=m_Options.Value.Visualization;
   if(o.ClaimToolAssetId==0||e.Player.Player.equipment.asset?.id!=o.ClaimToolAssetId)return;
   try

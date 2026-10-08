@@ -25,6 +25,8 @@ public sealed class ServiceConfigurator : IPluginContainerConfigurator
   context.ContainerBuilder.RegisterType<UTowny.Protection.InteractionAdapter>().SingleInstance();
   context.ContainerBuilder.RegisterType<UTowny.Visualization.ClaimToolService>().SingleInstance();
   context.ContainerBuilder.RegisterType<DomainEventPublisher>().SingleInstance();
+  context.ContainerBuilder.RegisterType<ConfigurationService>().SingleInstance();
+  context.ContainerBuilder.RegisterType<BackgroundQueue>().SingleInstance();
   context.ContainerBuilder.RegisterType<MutationGate>().SingleInstance();
   context.ContainerBuilder.RegisterType<ExtendedSchema>().SingleInstance();
   context.ContainerBuilder.RegisterType<TownManagementService>().As<ITownManagementService>().SingleInstance();

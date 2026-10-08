@@ -20,6 +20,7 @@ public sealed class GlobalTownyApi:IUTownyApi
    return plugin.LifetimeScope.Resolve<UTownyApi>();
   }
  }
+ public IPlotService Plots=>Current.Plots;public IPlaytimeService Playtime=>Current.Playtime;
  public ITownService Towns=>Current.Towns;public IClaimService Claims=>Current.Claims;public IEconomyService Economy=>Current.Economy;public IAuthorizationService Authorization=>Current.Authorization;
  public INationService Nations=>Current.Nations;public IWarService Wars=>Current.Wars;public IProtectionService Protection=>Current.Protection;public ITownManagementService Management=>Current.Management;
  public Town? GetTown(PlayerId player)=>Current.GetTown(player);public Claim? GetClaimAt(GridCoord grid)=>Current.GetClaimAt(grid);public bool IsPlayerResident(PlayerId player,TownId town)=>Current.IsPlayerResident(player,town);public TownRole? GetPlayerRole(PlayerId player)=>Current.GetPlayerRole(player);

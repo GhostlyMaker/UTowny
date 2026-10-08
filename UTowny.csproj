@@ -7,6 +7,8 @@
     <AssemblyName>UTowny</AssemblyName>
     <RootNamespace>UTowny</RootNamespace>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <Version>1.0.0-rc.1</Version>
+    <Description>Persistent towns, land protection, nations and consensual wars for OpenMod Unturned.</Description>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="config.yaml" />
@@ -16,6 +18,5 @@
     <PackageReference Include="OpenMod.Unturned" Version="3.8.10" />
     <PackageReference Include="OpenMod.Unturned.Redist" Version="3.26.1.1" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.0" />
   </ItemGroup>
 </Project>

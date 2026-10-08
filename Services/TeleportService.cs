@@ -20,7 +20,7 @@ public sealed class TeleportService
    if(m_Cooldowns.TryGetValue(id.Value,out var next)&&next>started)return Result.Fail("teleport_cooldown");
    if(m_Combat.TryGetValue(id.Value,out var combat)&&combat.AddSeconds(o.CombatLockSeconds)>started)return Result.Fail("in_combat");
    await UniTask.SwitchToMainThread();var player=user.Player.Player;var origin=player.transform.position;
-   if(player.life.isDead||player.movement.getVehicle()!=null||town.SpawnMap!=Level.info.name)return Result.Fail("spawn_unavailable");
+   if(player.life.isDead||player.movement.getVehicle()!=null||town.SpawnMap!=m_Grid.FromWorld(Level.info.name,0,0).MapId)return Result.Fail("spawn_unavailable");
    for(var elapsed=0;elapsed<o.WarmupSeconds*4;elapsed++)
    {
     await Task.Delay(250,Token);await UniTask.SwitchToMainThread();
@@ -34,7 +34,7 @@ public sealed class TeleportService
    if(m_Cache.GetClaim(m_Grid.FromWorld(town.SpawnMap!,spawn.X,spawn.Z))?.TownId!=town.Id)return Result.Fail("spawn_unavailable");
    if(o.Cost>0){var debit=await m_Economy.DebitAsync(id,o.Cost);if(!debit.Success)return Result.Fail(debit.Code);}
    await UniTask.SwitchToMainThread();
-   bool moved=player!=null&&!player.life.isDead&&Provider.clients.Any(c=>c.player==player)&&player.teleportToLocation(new Vector3(spawn.X,spawn.Y,spawn.Z),spawn.Yaw);
+   bool moved=!Token.IsCancellationRequested&&player!=null&&!player.life.isDead&&Provider.clients.Any(c=>c.player==player)&&(!o.CancelOnMovement||(player.transform.position-origin).sqrMagnitude<=0.25f)&&(!o.CancelOnDamage||!m_Combat.TryGetValue(id.Value,out var finalHit)||finalHit<started)&&player.teleportToLocation(new Vector3(spawn.X,spawn.Y,spawn.Z),spawn.Yaw);
    if(!moved){if(o.Cost>0)await m_Economy.CreditAsync(id,o.Cost);return Result.Fail("teleport_cancelled");}
    m_Cooldowns[id.Value]=DateTime.UtcNow.AddSeconds(o.CooldownSeconds);return Result.Ok("teleported");
   }

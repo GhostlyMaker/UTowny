@@ -6,11 +6,12 @@ namespace UTowny.Plugin;
 public sealed class UTownyPlugin:OpenModUnturnedPlugin
 {
  private readonly ISchemaMigrator m_Migrator;private readonly ExtendedSchema m_Extended;private readonly IWorldStateCache m_Cache;private readonly IPlaytimeService m_Playtime;private readonly ScheduledService m_Scheduled;private readonly IWarService m_Wars;private readonly ProtectionService m_Protection;private readonly InteractionAdapter m_Interactions;private readonly IUnturnedUserDirectory m_Users;private readonly IStringLocalizer m_Text;private readonly ILogger<UTownyPlugin> m_Log;private readonly TeleportService m_Teleport;private readonly IPermissionRegistry m_Permissions;private readonly MutationGate m_Gate;
+ private readonly BackgroundQueue m_Queue;
  private readonly UTowny.Visualization.ClaimToolService m_Tool;
  public bool Ready=>m_Protection.Ready;
  private CancellationTokenSource? m_Stop;private Task? m_Loop;
- public UTownyPlugin(IServiceProvider sp,ISchemaMigrator migrator,ExtendedSchema extended,IWorldStateCache cache,IPlaytimeService playtime,ScheduledService scheduled,IWarService wars,ProtectionService protection,InteractionAdapter interactions,IUnturnedUserDirectory users,IStringLocalizer text,ILogger<UTownyPlugin> log,TeleportService teleport,IPermissionRegistry permissions,MutationGate gate,UTowny.Visualization.ClaimToolService tool):base(sp)
- {m_Tool=tool;m_Migrator=migrator;m_Extended=extended;m_Cache=cache;m_Playtime=playtime;m_Scheduled=scheduled;m_Wars=wars;m_Protection=protection;m_Interactions=interactions;m_Users=users;m_Text=text;m_Log=log;m_Teleport=teleport;m_Permissions=permissions;m_Gate=gate;}
+ public UTownyPlugin(IServiceProvider sp,ISchemaMigrator migrator,ExtendedSchema extended,IWorldStateCache cache,IPlaytimeService playtime,ScheduledService scheduled,IWarService wars,ProtectionService protection,InteractionAdapter interactions,IUnturnedUserDirectory users,IStringLocalizer text,ILogger<UTownyPlugin> log,TeleportService teleport,IPermissionRegistry permissions,MutationGate gate,UTowny.Visualization.ClaimToolService tool,BackgroundQueue queue):base(sp)
+ {m_Queue=queue;m_Tool=tool;m_Migrator=migrator;m_Extended=extended;m_Cache=cache;m_Playtime=playtime;m_Scheduled=scheduled;m_Wars=wars;m_Protection=protection;m_Interactions=interactions;m_Users=users;m_Text=text;m_Log=log;m_Teleport=teleport;m_Permissions=permissions;m_Gate=gate;}
  protected override async UniTask OnLoadAsync()
  {
   await Task.Run(async()=>{await m_Migrator.MigrateAsync();await m_Extended.InitializeAsync();await m_Cache.RebuildAsync();await m_Wars.RefreshAsync();});
@@ -24,9 +25,10 @@ public sealed class UTownyPlugin:OpenModUnturnedPlugin
  }
  private async Task RunAsync(CancellationToken token)
  {
+  var ticks=0;
   while(!token.IsCancellationRequested)
   {
-   try{await Task.Delay(TimeSpan.FromSeconds(10),token);await m_Tool.ClearExpiredAsync();await m_Playtime.CheckpointAsync(token);await Notify(await m_Scheduled.ProcessAsync());}
+   try{await Task.Delay(TimeSpan.FromSeconds(1),token);await m_Tool.ClearExpiredAsync();if(++ticks%10==0){await m_Playtime.CheckpointAsync(token);await Notify(await m_Scheduled.ProcessAsync());}}
    catch(OperationCanceledException)when(token.IsCancellationRequested){break;}
    catch(Exception ex){m_Log.LogError(ex,"UTowny periodic processing failed; persistent deadlines will be retried");}
   }
@@ -40,6 +42,7 @@ public sealed class UTownyPlugin:OpenModUnturnedPlugin
  {
   m_Protection.Ready=false;m_Stop?.Cancel();if(m_Loop!=null)await m_Loop;
   await UniTask.SwitchToMainThread();m_Interactions.Dispose();await m_Tool.ClearExpiredAsync(true);
-  await m_Playtime.FlushAllAsync();m_Stop?.Dispose();m_Log.LogInformation("UTowny unloaded");
+  await m_Queue.DrainAsync();
+  await m_Gate.CloseAsync(()=>m_Playtime.FlushAllAsync());m_Stop?.Dispose();m_Log.LogInformation("UTowny unloaded");
  }
 }

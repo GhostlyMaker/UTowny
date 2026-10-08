@@ -1,8 +1,9 @@
+using Microsoft.Extensions.Options;using UTowny.Configuration;
 namespace UTowny.Persistence.Database;
 public sealed class ExtendedSchema
 {
- private readonly IDatabaseConnectionFactory m_Db;
- public ExtendedSchema(IDatabaseConnectionFactory db) => m_Db = db;
+ private readonly IDatabaseConnectionFactory m_Db;private readonly IOptions<UTownyOptions> m_Options;
+ public ExtendedSchema(IDatabaseConnectionFactory db,IOptions<UTownyOptions> options){m_Db=db;m_Options=options;}
  public async Task InitializeAsync()
  {
   using var db = await m_Db.OpenAsync(); using var s = new SqlSession(db);
@@ -22,6 +23,19 @@ CREATE TABLE metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL);
 CREATE TABLE shop_trades(id TEXT PRIMARY KEY,player INTEGER NOT NULL REFERENCES players(steam64),kind TEXT NOT NULL,amount INTEGER NOT NULL,asset INTEGER NOT NULL,count INTEGER NOT NULL,status TEXT NOT NULL,created_utc TEXT NOT NULL);
 UPDATE schema_version SET version=2;");
   }
+  if(s.Number("SELECT version FROM schema_version")<3)
+  {
+   s.Execute(@"
+CREATE TRIGGER player_money_insert BEFORE INSERT ON players WHEN typeof(NEW.balance)<>'integer' OR NEW.balance<0 BEGIN SELECT RAISE(ABORT,'invalid player balance'); END;
+CREATE TRIGGER player_money_update BEFORE UPDATE OF balance ON players WHEN typeof(NEW.balance)<>'integer' OR NEW.balance<0 BEGIN SELECT RAISE(ABORT,'invalid player balance'); END;
+CREATE TRIGGER town_money_insert BEFORE INSERT ON towns WHEN typeof(NEW.bank_balance)<>'integer' OR NEW.bank_balance<0 BEGIN SELECT RAISE(ABORT,'invalid town balance'); END;
+CREATE TRIGGER town_money_update BEFORE UPDATE OF bank_balance ON towns WHEN typeof(NEW.bank_balance)<>'integer' OR NEW.bank_balance<0 BEGIN SELECT RAISE(ABORT,'invalid town balance'); END;
+UPDATE schema_version SET version=3;");
+  }
+  var fingerprint=m_Options.Value.Claims.GridSizeMeters+":"+m_Options.Value.Claims.MapIdOverride;
+  var saved=s.Scalar("SELECT value FROM metadata WHERE key='grid_configuration'") as string;
+  if(saved!=null&&saved!=fingerprint&&s.Number("SELECT COUNT(*) FROM claims")>0)throw new InvalidOperationException("Changing grid size/map identity requires migrating or removing existing claims first");
+  s.Execute("INSERT INTO metadata VALUES('grid_configuration',$0) ON CONFLICT(key) DO UPDATE SET value=excluded.value",fingerprint);
   s.Commit();
  }
 }

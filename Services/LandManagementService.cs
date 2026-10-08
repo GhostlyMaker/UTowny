@@ -14,6 +14,7 @@ public sealed class LandManagementService
  public Task<Result> PermissionAsync(PlayerId actor,GridCoord grid,LandAction action,bool allow)=>m_Gate.RunAsync(async()=>
  {
   var claim=m_Cache.GetClaim(grid);if(claim==null)return Result.Fail("plot_not_found");if(claim.PlotOwner!=actor&&!m_Auth.Can(actor,claim.TownId,TownAction.ManagePlot))return Result.Fail("insufficient_role");
+  if(!Enum.IsDefined(typeof(LandAction),action))return Result.Fail("invalid_target");
   var flags=allow?claim.ProtectionFlags|(long)action:claim.ProtectionFlags&~(long)action;
   using var db=await m_Db.OpenAsync();using var s=new SqlSession(db);s.Execute("UPDATE claims SET protection_flags=$0 WHERE id=$1",flags,claim.Id.Value);s.Commit();await m_Cache.RebuildAsync();return Result.Ok();
  });

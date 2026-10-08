@@ -3,6 +3,7 @@ database:
 
 towns:
   creation_price: 25000
+  minimum_balance: 25000
   minimum_playtime_hours: 20
   starting_claims: 8
   claims_per_resident: 2
@@ -62,7 +63,7 @@ protection:
   town_damage: true
   town_salvage: true
   town_interact: true
-  vehicle_damage: true
+  vehicle_interaction: true
 
 visualization:
   claim_tool_asset_id: 0

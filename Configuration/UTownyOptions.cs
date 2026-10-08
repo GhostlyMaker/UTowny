@@ -2,6 +2,7 @@ namespace UTowny.Configuration;
 
 public sealed class UTownyOptions
 {
+    public ProtectionOptions Protection {get;set;}=new();
     public ShopOptions Shop {get;set;}=new();
     public TeleportOptions Teleportation {get;set;}=new();
     public VisualizationOptions Visualization {get;set;}=new();
@@ -19,6 +20,7 @@ public sealed class DatabaseOptions { public string FileName { get; set; } = "ut
 public sealed class TownOptions
 {
     public long CreationPrice { get; set; } = 25000;
+    public long MinimumBalance {get;set;}=25000;
     public int MinimumPlaytimeHours { get; set; } = 20;
     public int StartingClaims { get; set; } = 8;
     public int ClaimsPerResident { get; set; } = 2;

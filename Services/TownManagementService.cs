@@ -88,6 +88,7 @@ public sealed class TownManagementService : ITownManagementService
     {
         var columns = new Dictionary<string, string> { ["pvp"]="pvp_enabled", ["tax"]="tax_enabled", ["taxamount"]="tax_amount", ["public"]="spawn_public", ["protection"]="protection_flags" };
         if (!columns.TryGetValue(setting, out var column) || value < 0 || (setting != "taxamount" && setting != "protection" && value > 1)) return Result.Fail("invalid_amount");
+        if(setting=="protection"&&value>31)return Result.Fail("invalid_amount");
         if (m_Cache.GetMembership(actor)!.Role != TownRole.Mayor) return Result.Fail("not_mayor");
         s.Execute($"UPDATE towns SET {column}=$0 WHERE id=$1", value, town.Value); return Result.Ok();
     });
