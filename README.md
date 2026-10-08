@@ -1,4 +1,4 @@
-# UTowny 1.0.0-rc.1
+# UTowny 1.0.0-rc.2
 
 UTowny is one OpenMod gameplay plugin (`UTowny.dll`) for Unturned. It provides persistent towns, grid claims, private plots, virtual currency, a Scrap shop, town spawns, taxes, upkeep, nations, alliances and consensual PvP wars.
 

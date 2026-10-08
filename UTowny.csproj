@@ -7,10 +7,11 @@
     <AssemblyName>UTowny</AssemblyName>
     <RootNamespace>UTowny</RootNamespace>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <Version>1.0.0-rc.1</Version>
+    <Version>1.0.0-rc.2</Version>
     <Description>Persistent towns, land protection, nations and consensual wars for OpenMod Unturned.</Description>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="tests/**/*.cs" />
     <EmbeddedResource Include="config.yaml" />
     <EmbeddedResource Include="translations.yaml" />
   </ItemGroup>

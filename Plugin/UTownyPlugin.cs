@@ -10,8 +10,8 @@ public sealed class UTownyPlugin:OpenModUnturnedPlugin
  private readonly UTowny.Visualization.ClaimToolService m_Tool;
  public bool Ready=>m_Protection.Ready;
  private CancellationTokenSource? m_Stop;private Task? m_Loop;
- public UTownyPlugin(IServiceProvider sp,ISchemaMigrator migrator,ExtendedSchema extended,IWorldStateCache cache,IPlaytimeService playtime,ScheduledService scheduled,IWarService wars,ProtectionService protection,InteractionAdapter interactions,IUnturnedUserDirectory users,IStringLocalizer text,ILogger<UTownyPlugin> log,TeleportService teleport,IPermissionRegistry permissions,MutationGate gate,UTowny.Visualization.ClaimToolService tool,BackgroundQueue queue):base(sp)
- {m_Queue=queue;m_Tool=tool;m_Migrator=migrator;m_Extended=extended;m_Cache=cache;m_Playtime=playtime;m_Scheduled=scheduled;m_Wars=wars;m_Protection=protection;m_Interactions=interactions;m_Users=users;m_Text=text;m_Log=log;m_Teleport=teleport;m_Permissions=permissions;m_Gate=gate;}
+ public UTownyPlugin(IServiceProvider sp,ISchemaMigrator migrator,ExtendedSchema extended,IWorldStateCache cache,IPlaytimeService playtime,ScheduledService scheduled,IWarService wars,ProtectionService protection,InteractionAdapter interactions,IUnturnedUserDirectory users,IStringLocalizer text,ILogger<UTownyPlugin> log,TeleportService teleport,IPermissionRegistry permissions,MutationGate gate,UTowny.Visualization.ClaimToolService tool,BackgroundQueue queue,DomainEventPublisher events):base(sp)
+ {events.Initialize(this);m_Queue=queue;m_Tool=tool;m_Migrator=migrator;m_Extended=extended;m_Cache=cache;m_Playtime=playtime;m_Scheduled=scheduled;m_Wars=wars;m_Protection=protection;m_Interactions=interactions;m_Users=users;m_Text=text;m_Log=log;m_Teleport=teleport;m_Permissions=permissions;m_Gate=gate;}
  protected override async UniTask OnLoadAsync()
  {
   try

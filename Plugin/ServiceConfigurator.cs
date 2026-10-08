@@ -30,7 +30,10 @@ public sealed class ServiceConfigurator : IPluginContainerConfigurator
   context.ContainerBuilder.RegisterType<MutationGate>().SingleInstance();
   context.ContainerBuilder.RegisterType<ExtendedSchema>().SingleInstance();
   context.ContainerBuilder.RegisterType<TownManagementService>().As<ITownManagementService>().SingleInstance();
-  context.ContainerBuilder.RegisterType<DatabaseConnectionFactory>().As<IDatabaseConnectionFactory>().SingleInstance();
+  // The activator's plugin accessor is empty until OnLoadAsync completes.
+  var workingDirectory = context.WorkingDirectory;
+  context.ContainerBuilder.Register(c => new DatabaseConnectionFactory(workingDirectory, c.Resolve<IOptions<UTownyOptions>>()))
+    .As<IDatabaseConnectionFactory>().SingleInstance();
   context.ContainerBuilder.RegisterType<SchemaMigrator>().As<ISchemaMigrator>().SingleInstance();
   context.ContainerBuilder.RegisterType<PlayerRepository>().As<IPlayerRepository>().SingleInstance();
   context.ContainerBuilder.RegisterType<WorldRepository>().As<IWorldRepository>().SingleInstance();

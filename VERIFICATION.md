@@ -27,3 +27,7 @@ Use a disposable server/database and at least two towns with separate resident a
 - [ ] Active war permits opposing participants' PvP but preserves property protections and excludes unrelated players.
 - [ ] Check every admin action's authorization and destructive-action log, including temporary bypass expiry/disconnect.
 - [ ] Inject public API from a second plugin; exercise cancellable pre-events, post-events, unloaded state and OpenMod reload without stale listeners/tasks.
+
+## rc.2 startup regression
+
+CI opens the actual SQLite connection factory before any OpenMod plugin exists, checks foreign keys, and reopens the database to verify persistence. On a staging server, confirm startup reaches `UTowny loaded; schema and persistent timers ready`, then restart with existing towns and overdue timers. The automated test does not replace an OpenMod/Mono server smoke test.

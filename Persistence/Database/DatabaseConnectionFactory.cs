@@ -1,9 +1,6 @@
 using Microsoft.Data.Sqlite;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using OpenMod.API.Plugins;
 using UTowny.Configuration;
-using UTowny.Plugin;
 
 namespace UTowny.Persistence.Database;
 
@@ -15,22 +12,21 @@ public interface IDatabaseConnectionFactory
 
 public sealed class DatabaseConnectionFactory : IDatabaseConnectionFactory
 {
-    private readonly Lazy<IPluginAccessor<UTownyPlugin>> m_PluginAccessor;
+    private readonly string m_WorkingDirectory;
     private readonly IOptions<UTownyOptions> m_Options;
     private string? m_Path;
     public string DatabasePath => m_Path ??= ResolvePath();
 
-    public DatabaseConnectionFactory(Lazy<IPluginAccessor<UTownyPlugin>> pluginAccessor, IOptions<UTownyOptions> options)
+    public DatabaseConnectionFactory(string workingDirectory, IOptions<UTownyOptions> options)
     {
-        m_PluginAccessor = pluginAccessor;
+        m_WorkingDirectory = workingDirectory;
         m_Options = options;
     }
 
     private string ResolvePath()
     {
-        var plugin = m_PluginAccessor.Value.Instance ?? throw new InvalidOperationException("UTowny plugin instance is not available.");
-        Directory.CreateDirectory(plugin.WorkingDirectory);
-        return Path.Combine(plugin.WorkingDirectory, m_Options.Value.Database.FileName);
+        Directory.CreateDirectory(m_WorkingDirectory);
+        return Path.Combine(m_WorkingDirectory, m_Options.Value.Database.FileName);
     }
 
     public async Task<SqliteConnection> OpenAsync(CancellationToken ct = default)

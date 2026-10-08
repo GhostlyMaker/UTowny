@@ -17,6 +17,8 @@ jobs:
         run: dotnet restore UTowny.csproj
       - name: Build
         run: dotnet build UTowny.csproj --configuration Release --no-restore
+      - name: Startup database regression
+        run: dotnet run --project tests/StartupRegression/StartupRegression.csproj --configuration Release
       - name: Package DLL and SQLite runtime libraries
         run: python3 scripts/package.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
