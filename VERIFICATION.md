@@ -64,3 +64,10 @@ On the Windows server, keep effect 2 and test `/t show` on one claim and after a
 Boundary markers are re-sent every `visualization.refresh_seconds` (default 1 second), independently of database/tax processing, until `duration_seconds` expires after the initial drawing completes. The new setting defaults automatically for existing configs. Cached terrain positions avoid repeat raycasts. Refresh work is bounded to 512 markers per player per 100ms tick; large previews or server lag may delay refresh. `/t show off`, replacement previews, disconnect, map changes and unload stop the old refresh. No respawns occur at or after the deadline; effect clearing is requested then. Client particle/splatter tails can still outlast cleanup, and very short-lived assets may need a shorter refresh interval.
 
 Regression tests simulate two-second effects over eight seconds, incremental drawing, bounded batches, expiry, cancellation and replacement sessions. In-game: keep effect 134, duration 8, refresh 1; verify the border remains visible, then test off and reload during a preview.
+
+
+## rc.10 rectangular plots
+
+CI exercises migration from schema 3 with legacy owned/listed claims, four adjacent 32m plots in a 64m claim, arbitrary rectangles, negative positions, exact shared edges, claim/map containment, rejected overlaps/names/roles, concurrent buyers, insufficient funds, treasury-overflow rollback, outsider policy, precise owner/outsider/leader action checks, public flags, reload persistence, release/deletion, member-leave cleanup, legacy purchases, admin and normal unclaim guards, database overlap constraints, preview geometry and town deletion cleanup.
+
+Live-server verification: back up before migration; select/preview/create using feet and exact coordinates; purchase with a resident; try build, storage, doors, salvage, damage and vehicle access as owner/non-owner at both sides of an edge and above/below it; test moving a buildable across the boundary; confirm town protection in gaps, vanilla locks, legacy plots, `/plot release confirm`, `/plot delete confirm`, and restart persistence. New command and event wiring still needs in-game testing.

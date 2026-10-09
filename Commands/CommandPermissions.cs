@@ -10,7 +10,7 @@ public static class CommandPermissions
     private static readonly IReadOnlyDictionary<string, string[]> Actions = new Dictionary<string, string[]>
     {
         ["town"] = new[] { "create", "info", "list", "residents", "invite", "accept", "leave", "kick", "promote", "demote", "mayor", "disband", "deposit", "claim", "unclaim", "show", "pvp", "tax", "setspawn", "spawn", "public", "protection" },
-        ["plot"] = new[] { "info", "buy", "forsale", "notforsale", "permissions" },
+        ["plot"] = new[] { "info", "buy", "forsale", "notforsale", "permissions", "pos1", "pos2", "create", "show", "preview", "clear", "delete", "release" },
         ["nation"] = new[] { "create", "info", "members", "allies", "invite", "accept", "kick", "leave", "disband", "ally", "allyaccept", "allydecline", "unally" },
         ["war"] = new[] { "request", "accept", "decline", "cancel", "info", "list" }
     };
@@ -41,3 +41,4 @@ public static class CommandPermissions
             : null;
     }
 }
+

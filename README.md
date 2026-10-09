@@ -1,4 +1,4 @@
-# UTowny 1.0.0-rc.9
+# UTowny 1.0.0-rc.10
 
 UTowny is one OpenMod gameplay plugin (`UTowny.dll`) for Unturned. It provides persistent towns, grid claims, private plots, virtual currency, a Scrap shop, town spawns, taxes, upkeep, nations, alliances and consensual PvP wars.
 
@@ -44,7 +44,7 @@ Set `visualization.claim_tool_asset_id` to an installed item asset and `effect_a
 
 New optional visualization settings: `marker_spacing_meters: 2` (0.5–16), `marker_height_meters: 0.15` (0.02–2), and `max_markers: 4096` (128–8192). Existing configs get these defaults automatically. Rendering uses batches of 64 markers, with cancellable pauses so reload can stop it. Previews are limited to once per three seconds. Oversized full-town previews are rejected with instructions; no incomplete grid is silently presented. Use `/t show cell` or adjust spacing/budget for large towns. Effect clearing is requested after `duration_seconds` from the end of rendering, checked roughly every 100 milliseconds. Particles and especially splatter decals can have their own lifetimes and may disappear earlier or remain after clearing. No permanent structures or map overlays are created.
 
-The preview shows actual ownership cells, not decorative subdivisions. A plot is currently one whole claim cell (64 × 64 metres by default); standing in it and using `/plot forsale <price>` lists that cell. Custom-sized plots smaller than a cell are not implemented. Do not change `grid_size_meters` on an existing town to resize plots: that changes the ownership grid and requires an explicit migration.
+The town preview shows the claim grid. Rectangular plots can subdivide those cells without changing their size: use `/plot pos1`, `/plot pos2`, `/plot create <name> <total price>`. `/plot show` previews the actual plot at your feet. Existing whole-cell plots remain valid. Do not change `grid_size_meters` on an existing town to resize plots.
 
 ### Reload and data
 
@@ -72,3 +72,22 @@ Original Part 1 has been extended in the same project. `COMMANDS.md`, `permissio
 ## rc.9 preview duration
 
 Boundary markers are re-sent every `visualization.refresh_seconds` (default 1 second), independently of database/tax processing, until `duration_seconds` expires after the initial drawing completes. The new setting defaults automatically for existing configs. Cached terrain positions avoid repeat raycasts. Refresh work is bounded to 512 markers per player per 100ms tick; large previews or server lag may delay refresh. `/t show off`, replacement previews, disconnect, map changes and unload stop the old refresh. No respawns occur at or after the deadline; effect clearing is requested then. Client particle/splatter tails can still outlast cleanup, and very short-lived assets may need a shorter refresh interval.
+
+
+## Rectangular plots (rc.10)
+
+Stop the server and back up the UTowny data directory before upgrading. Schema version 4 adds rectangular plots; it leaves existing claims, plot owners, flags, prices and listings unchanged. Once rectangular plots exist, do not run an older DLL against the upgraded database: it does not enforce their ownership boundaries. Restore the pre-upgrade backup if rolling back.
+
+Mayor/Co-Mayor leadership can select opposite corners using `/plot pos1` and `/plot pos2` at their feet. Optional exact integer coordinates are supported: `/plot pos1 <x> <z>` and `/plot pos2 <x> <z>`. Feet coordinates round to the nearest metre (half-metres away from zero). Both corners define boundary lines, not inclusive block positions. The minimum edges are included and maximum edges excluded, so neighbouring rectangles have no overlapping ownership. Selection covers all heights; there is no vertical subdivision.
+
+The second corner previews valid selections and reports dimensions. `/plot preview` repeats the selection preview; `/plot clear` clears it. Selections expire after 30 minutes, disconnect or reload, and reset when selecting on a different map or for a different town. `/plot create <name> <total price>` validates again, creates the rectangle and lists it. Names use 1–32 ASCII letters, digits, underscores or hyphens and are unique within the town ignoring case. Price is a nonnegative integer total, not a price per square metre.
+
+Every covered claim must belong to the town. Rectangles are 1–1024 metres per side, covering at most 256 cells. They may cross claim edges but cannot cross wilderness, another town, another rectangular plot, or a whole-cell plot already owned/listed. Unlist an unsold legacy cell before dividing it. Existing owned legacy plots cannot be subdivided by this workflow.
+
+Stand inside a rectangle for `/plot info`, `/plot show`, `/plot buy`, `/plot forsale <price>`, `/plot notforsale` and `/plot permissions <action> on|off`. The purchase atomically transfers the price from the buyer to the town treasury; a simultaneous second buyer, insufficient funds or treasury overflow cannot partially change money/ownership. Outsider purchase follows `plots.outsiders_can_buy`.
+
+Owners use `/plot release confirm` to return their rectangle to the town without a refund. Leadership uses `/plot delete confirm` to remove an unowned rectangle. Owned rectangles cannot be deleted/relisted by leadership until released. These new release/delete commands apply only to rectangular plots. Unclaiming (including admin unclaim) is blocked while any rectangle intersects the cell. Explicit town deletion still deletes its plots. Leaving, being kicked, or being removed for tax releases plots in that town, matching the existing membership model.
+
+Protection uses the object's horizontal position for build, damage, salvage, interaction and vehicle checks; transformed buildables check both old and new positions. Plot owners do not gain rights elsewhere in the same claim. Objects at any height at that position belong to the plot's protection region. The object's anchor/placement point decides its region, not every part of an oversized object's mesh. Town leadership and the explicit admin bypass retain existing rights. Unowned plots and space outside rectangles follow town protection. Vanilla locks and ownership restrictions still apply.
+
+For API integrations, use `IProtectionService.CanAt(player, grid, x, z, action)` with the target object's coordinates. The old grid-only `Can` fails closed for ordinary players in towns with rectangles because it cannot resolve a precise target. Legacy `IPlotService` whole-cell mutations reject cells intersected by rectangular plots. `IWorldStateCache.GetTownPlots` and `GetPlotAt` expose rectangular plot snapshots; `RectPlotService` is available within the plugin scope.

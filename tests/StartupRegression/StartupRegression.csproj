@@ -6,6 +6,17 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../Services/RectPlotService.cs" Link="Services/RectPlotService.cs" />
+    <Compile Include="../../Services/PlotSelectionService.cs" Link="Services/PlotSelectionService.cs" />
+    <Compile Include="../../Services/PlotService.cs" Link="Services/PlotService.cs" />
+    <Compile Include="../../Services/LandManagementService.cs" Link="Services/LandManagementService.cs" />
+    <Compile Include="../../Services/TownManagementService.cs" Link="Services/TownManagementService.cs" />
+    <Compile Include="../../Services/AuthorizationService.cs" Link="Services/AuthorizationService.cs" />
+    <Compile Include="../../Services/AdminService.cs" Link="Services/AdminService.cs" />
+    <Compile Include="../../Services/WarService.cs" Link="Services/WarService.cs" />
+    <Compile Include="../../Protection/ProtectionService.cs" Link="Protection/ProtectionService.cs" />
+    <Compile Include="../../Visualization/PlotGridGeometry.cs" Link="Visualization/PlotGridGeometry.cs" />
+
     <Compile Include="../../Visualization/PreviewRefresh.cs" Link="Visualization/PreviewRefresh.cs" />
     <Compile Include="../../Visualization/ClaimGridGeometry.cs" Link="Visualization/ClaimGridGeometry.cs" />
     <Compile Include="../../Services/GridService.cs" Link="Services/GridService.cs" />
@@ -37,4 +48,5 @@
     <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
   </ItemGroup>
 </Project>
+
 

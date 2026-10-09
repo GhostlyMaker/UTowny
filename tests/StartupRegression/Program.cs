@@ -52,3 +52,6 @@ CombatRegression.Run();
 GridRegression.Run();
 
 RefreshRegression.Run();
+
+
+await PlotRegression.RunAsync();

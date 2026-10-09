@@ -3,8 +3,9 @@ using UTowny.Caching;using UTowny.Domain.Claims;using UTowny.Domain.Common;using
 namespace UTowny.Services;
 public sealed class AdminService
 {
+ private readonly IGridService m_Grid;
  private readonly IDatabaseConnectionFactory m_Db;private readonly IWorldStateCache m_Cache;private readonly MutationGate m_Gate;private readonly IWarService m_Wars;private readonly ILogger<AdminService> m_Log;
- public AdminService(IDatabaseConnectionFactory db,IWorldStateCache cache,MutationGate gate,IWarService wars,ILogger<AdminService> log){m_Db=db;m_Cache=cache;m_Gate=gate;m_Wars=wars;m_Log=log;}
+ public AdminService(IDatabaseConnectionFactory db,IWorldStateCache cache,MutationGate gate,IWarService wars,ILogger<AdminService> log,IGridService grid){m_Grid=grid;m_Db=db;m_Cache=cache;m_Gate=gate;m_Wars=wars;m_Log=log;}
  public Task<string> PendingAsync(string player)=>m_Gate.RunAsync(async()=>
  {
   if(!long.TryParse(player,out var id))return "-";
@@ -32,6 +33,8 @@ public sealed class AdminService
   else if(action=="unclaim")
   {
    var claim=m_Cache.GetClaim(grid);if(claim==null)return Result.Fail("plot_not_found");
+   var bounds=m_Grid.Bounds(grid);
+   if(m_Cache.GetTownPlots(claim.TownId).Any(p=>p.Bounds.MapId==grid.MapId&&p.Bounds.MinX<bounds.MaxX&&p.Bounds.MaxX>bounds.MinX&&p.Bounds.MinZ<bounds.MaxZ&&p.Bounds.MaxZ>bounds.MinZ))return Result.Fail("rect_cell_in_use");
    s.Execute("DELETE FROM claims WHERE id=$0",claim.Id.Value);s.Execute("UPDATE towns SET spawn_x=NULL,spawn_y=NULL,spawn_z=NULL,spawn_yaw=NULL,spawn_map=NULL WHERE id=$0",claim.TownId.Value);
   }
   else if(action=="addmember")
@@ -73,3 +76,4 @@ public sealed class AdminService
   s.Commit();await m_Cache.RebuildAsync();await m_Wars.RefreshAsync();m_Log.LogWarning("Admin {Actor}: {Action} target {Target} value {Value}",actor,action,target,value);return Result.Ok();
  });
 }
+

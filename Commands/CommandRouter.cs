@@ -1,3 +1,4 @@
+using UTowny.Domain.Plots;
 using Cysharp.Threading.Tasks;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
@@ -10,13 +11,14 @@ using UTowny.Caching;using UTowny.Domain.Claims;using UTowny.Domain.Common;using
 namespace UTowny.Commands;
 public sealed class CommandRouter
 {
+ private readonly RectPlotService m_RectPlots;private readonly PlotSelectionService m_Selections;private readonly IAuthorizationService m_Auth;
  private readonly IUnturnedUserDirectory m_Users;
  private readonly ConfigurationService m_Configuration;
  private readonly UTowny.Visualization.ClaimToolService m_Tool;
  private readonly IShopService m_Shop;private readonly TeleportService m_Teleport;
  private readonly ITownService m_Towns;private readonly ITownManagementService m_Manage;private readonly IEconomyService m_Economy;private readonly IClaimService m_Claims;private readonly IPlotService m_Plots;private readonly IGridService m_Grid;private readonly IWorldStateCache m_Cache;private readonly INationService m_Nations;private readonly IWarService m_Wars;private readonly LandManagementService m_Land;private readonly AdminService m_Admin;private readonly ProtectionService m_Protection;private readonly IPermissionChecker m_Permissions;private readonly IStringLocalizer m_Text;private readonly ILogger<CommandRouter> m_Log;
- public CommandRouter(ITownService towns,ITownManagementService manage,IEconomyService economy,IClaimService claims,IPlotService plots,IGridService grid,IWorldStateCache cache,INationService nations,IWarService wars,LandManagementService land,AdminService admin,ProtectionService protection,IPermissionChecker permissions,IStringLocalizer text,ILogger<CommandRouter> log,IShopService shop,TeleportService teleport,UTowny.Visualization.ClaimToolService tool,ConfigurationService configuration,IUnturnedUserDirectory users)
- {m_Users=users;m_Configuration=configuration;m_Tool=tool;m_Shop=shop;m_Teleport=teleport;m_Towns=towns;m_Manage=manage;m_Economy=economy;m_Claims=claims;m_Plots=plots;m_Grid=grid;m_Cache=cache;m_Nations=nations;m_Wars=wars;m_Land=land;m_Admin=admin;m_Protection=protection;m_Permissions=permissions;m_Text=text;m_Log=log;}
+ public CommandRouter(ITownService towns,ITownManagementService manage,IEconomyService economy,IClaimService claims,IPlotService plots,IGridService grid,IWorldStateCache cache,INationService nations,IWarService wars,LandManagementService land,AdminService admin,ProtectionService protection,IPermissionChecker permissions,IStringLocalizer text,ILogger<CommandRouter> log,IShopService shop,TeleportService teleport,UTowny.Visualization.ClaimToolService tool,ConfigurationService configuration,IUnturnedUserDirectory users,RectPlotService rectPlots,PlotSelectionService selections,IAuthorizationService auth)
+ {m_RectPlots=rectPlots;m_Selections=selections;m_Auth=auth;m_Users=users;m_Configuration=configuration;m_Tool=tool;m_Shop=shop;m_Teleport=teleport;m_Towns=towns;m_Manage=manage;m_Economy=economy;m_Claims=claims;m_Plots=plots;m_Grid=grid;m_Cache=cache;m_Nations=nations;m_Wars=wars;m_Land=land;m_Admin=admin;m_Protection=protection;m_Permissions=permissions;m_Text=text;m_Log=log;}
  public async Task<string> ExecuteAsync(ICommandContext context,string group)
  {
   try
@@ -91,7 +93,52 @@ public sealed class CommandRouter
    }
    else if(group=="plot")
    {
-    if(op=="buy"){var r=await m_Plots.BuyAsync(id,grid);result=new(r.Success,r.Code);}
+    if(op=="clear"){m_Selections.Clear(id);return PlotMessage("rect_selection_cleared");}
+    if(op=="pos1"||op=="pos2")
+    {
+     var town=OwnTown(id);if(!m_Auth.Can(id,town.Id,TownAction.ManagePlot))return m_Text["insufficient_role"];
+     if(args.Length!=1&&args.Length!=3)return "Usage: /plot "+op+" [x z]. Omit coordinates to use your feet.";
+     var x=args.Length==3?int.Parse(Arg(1)):PlotRect.Snap(position!.X);var z=args.Length==3?int.Parse(Arg(2)):PlotRect.Snap(position!.Z);
+     var selected=m_Selections.Set(id,town.Id,grid.MapId,op=="pos1",x,z);
+     var corner=op=="pos1"?"1":"2";
+     var prefix=$"Corner {corner} selected at {x}, {z} (all heights). ";
+     if(selected.Bounds is not { } bounds)return prefix+"Set the other corner with /plot "+(op=="pos1"?"pos2":"pos1")+".";
+     var validation=m_RectPlots.Validate(id,selected.Town,bounds);
+     if(!validation.Success)return prefix+PlotMessage(validation.Code);
+     return prefix+await m_Tool.ShowPlotAsync(user!,bounds,"selection");
+    }
+    if(op=="create"||op=="preview")
+    {
+     if(op=="create"&&args.Length!=3)return "Usage: /plot create <name> <total price>. Select corners with /plot pos1 and /plot pos2 first.";
+     var selected=m_Selections.Get(id);
+     if(selected?.Bounds is not { } bounds||selected.Map!=grid.MapId)return PlotMessage("rect_selection_missing");
+     if(op=="preview")
+     {
+      var validation=m_RectPlots.Validate(id,selected.Town,bounds);if(!validation.Success)return PlotMessage(validation.Code);
+      return await m_Tool.ShowPlotAsync(user!,bounds,"selection");
+     }
+     var created=await m_RectPlots.CreateAsync(id,selected.Town,bounds,Arg(1),long.Parse(Arg(2)));
+     if(!created.Success)return PlotMessage(created.Code);
+     m_Selections.Clear(id);
+     return Message("rect_created_detail",$"Plot {created.Value!.Name} created and listed for {created.Value.Price} total. Size: {bounds.Width} x {bounds.Depth} metres, all heights. Stand inside it to use /plot info, /plot show or /plot buy.",new{Name=created.Value.Name,Price=created.Value.Price,Width=bounds.Width,Depth=bounds.Depth});
+    }
+    var rect=m_Cache.GetPlotAt(grid,position!.X,position.Z);
+    if(op=="show")
+    {
+     if(rect!=null)return await m_Tool.ShowPlotAsync(user!,rect.Bounds,rect.Name);
+     return await m_Tool.ShowAsync(user!,"cell");
+    }
+    if(rect!=null)
+    {
+     if(op=="info")return $"Plot {rect.Name}: {rect.Bounds.Width} x {rect.Bounds.Depth} metres ({rect.Bounds.Area} m2), all heights. Owner: {(rect.Owner?.Value.ToString()??"town")}. For sale: {(rect.ForSale?rect.Price.ToString():"no")}. Bounds: {rect.Bounds.MinX}, {rect.Bounds.MinZ} to {rect.Bounds.MaxX}, {rect.Bounds.MaxZ}.";
+     if((op=="delete"||op=="release")&&(args.Length!=2||Arg(1)!="confirm"))return $"Usage: /plot {op} confirm while inside the plot. Release returns it to the town without a refund; delete removes an unowned plot.";
+     var price=op=="forsale"?long.Parse(Arg(1)):0;
+     var action=op=="permissions"?(LandAction)Enum.Parse(typeof(LandAction),Arg(1),true):LandAction.Build;
+     var allow=op=="permissions"&&Toggle(Arg(2))==1;
+     result=await m_RectPlots.ChangeAsync(id,grid,position.X,position.Z,op,price,action,allow);
+    }
+    else if(op=="delete"||op=="release")return PlotMessage("rect_legacy_only");
+    else if(op=="buy"){var r=await m_Plots.BuyAsync(id,grid);result=new(r.Success,r.Code);}
     else if(op=="forsale"){var r=await m_Plots.SetForSaleAsync(id,grid,long.Parse(Arg(1)));result=new(r.Success,r.Code);}
     else if(op=="notforsale"){var r=await m_Plots.SetNotForSaleAsync(id,grid);result=new(r.Success,r.Code);}
     else if(op=="permissions")result=await m_Land.PermissionAsync(id,grid,(LandAction)Enum.Parse(typeof(LandAction),Arg(1),true),Toggle(Arg(2))==1);
@@ -126,7 +173,7 @@ public sealed class CommandRouter
     if(op=="claim"||op=="unclaim")if(user==null)return m_Text["player_only"];
     result=await m_Admin.ExecuteAsync(context.Actor.Id,op,args.Length>1?Arg(1):"",args.Length>2?Arg(2):"",grid);
    }
-   return m_Text[result.Code];
+   return PlotMessage(result.Code);
   }
   catch(UTowny.Api.Events.TownyActionCancelledException){return m_Text["action_cancelled"];}
   catch(CommandFeedbackException ex){return m_Text[ex.Key];}
@@ -135,13 +182,14 @@ public sealed class CommandRouter
   catch(OverflowException){return m_Text["invalid_amount"];}
   catch(Exception ex){m_Log.LogError(ex,"Command {Group} failed for {Actor}",group,context.Actor.Id);return m_Text["generic_error"];}
  }
+ private string PlotMessage(string key)=>Message(key,PlotMessages.Get(key));
  private string Message(string key,string fallback,params object[] args)
  {var value=m_Text[key,args];return value.ResourceNotFound?fallback:value.Value;}
- private string Help(string group)=>Message(group+"_help",group switch
+ private string Help(string group)=>Message(group=="plot"?"plot_help_v2":group+"_help",group switch
  {
   "town"=>"Town commands: /t create <name> (or /t new <name>), /t info [name], /t list, /t invite <player>, /t accept <town>, /t deposit <amount>, /t claim, /t show [town|cell|off], /t setspawn, /t spawn. Example: /t create VazerTown",
   "nation"=>"Nation commands: /n create <name>, /n info, /n members, /n invite <town>, /n accept <nation>. You must belong to a town first.",
-  "plot"=>"Plot commands: /plot info, /plot buy, /plot forsale <price>, /plot notforsale, /plot permissions <action> on|off.",
+  "plot"=>"Plots: /plot pos1 [x z], /plot pos2 [x z], /plot preview, /plot create <name> <total price>, /plot clear. Stand inside: /plot info, /plot show, /plot buy, /plot forsale <price>, /plot notforsale, /plot permissions <action> on|off, /plot release confirm, /plot delete confirm. All plots cover every height.",
   "war"=>"War commands: /war request|accept|decline|cancel <town>, /war info, /war list.",
   "pay"=>"Usage: /pay <player name|Steam64> <amount>. This transfers money from your own balance.",
   "buy"=>"Usage: /buy <item> <amount>. Example: /buy scrap 1",
@@ -155,4 +203,5 @@ public sealed class CommandRouter
  private Town OwnTown(PlayerId id)=>m_Towns.GetTown(id)??throw new CommandFeedbackException("not_in_town");
  private static long Toggle(string value)=>value.ToLowerInvariant() switch {"on"=>1,"off"=>0,_=>throw new ArgumentException()};
 }
+
 

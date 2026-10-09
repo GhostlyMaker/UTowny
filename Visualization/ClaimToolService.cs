@@ -1,3 +1,4 @@
+using UTowny.Domain.Plots;
 using System.Collections.Concurrent;
 using Cysharp.Threading.Tasks;
 using Microsoft.Extensions.Options;
@@ -41,7 +42,8 @@ public sealed class ClaimToolService
     private string Message(string key, string fallback, params object[] args)
     { var value = m_Text[key, args]; return value.ResourceNotFound ? fallback : value.Value; }
 
-    public async Task<string> ShowAsync(UnturnedUser user, string mode = "town")
+    public Task<string> ShowPlotAsync(UnturnedUser user,PlotRect rect,string name)=>ShowAsync(user,"cell",rect,name);
+    public async Task<string> ShowAsync(UnturnedUser user, string mode = "town", PlotRect? rectangle=null, string? plotName=null)
     {
         mode = mode.ToLowerInvariant();
         if (mode != "town" && mode != "cell" && mode != "off")
@@ -87,7 +89,10 @@ public sealed class ClaimToolService
                         label = m_Cache.GetTown(townId.Value)?.Name ?? "town";
                     }
                 }
-                try { geometry = ClaimGridGeometry.Build(cells, mapId, size, options.MarkerSpacingMeters, options.MaxMarkers); }
+                if(rectangle is { } selected && selected.MapId!=mapId)return;
+                try { geometry = rectangle is { } rect
+                    ? PlotGridGeometry.Build(rect,options.MarkerSpacingMeters,options.MaxMarkers)
+                    : ClaimGridGeometry.Build(cells, mapId, size, options.MarkerSpacingMeters, options.MaxMarkers); }
                 catch (PreviewTooLargeException)
                 {
                     description = Message("grid_too_large", "The full town grid exceeds the marker limit. Use /t show cell, or ask an admin to increase marker_spacing_meters or max_markers. No partial grid was drawn.");
@@ -102,6 +107,9 @@ public sealed class ClaimToolService
                 description = Message("grid_shown",
                     $"Showing {label}: {geometry.CellCount} cell(s), {size} x {size} metres each; outer boundary and internal grid, {geometry.Markers.Count} markers. Current cell: {current.X}, {current.Z}. /t show cell isolates this cell; /t show off stops the preview.",
                     new { Name = label, Cells = geometry.CellCount, Size = size, Markers = geometry.Markers.Count, X = current.X, Z = current.Z });
+                if(rectangle is { } shown)
+                    description=Message("rect_preview_shown",$"Plot {plotName}: {shown.Width} x {shown.Depth} metres ({shown.Area} m2), all heights. Corners: {shown.MinX}, {shown.MinZ} to {shown.MaxX}, {shown.MaxZ}. Preview only; /plot create <name> <price> confirms a selection.",
+                        new{Name=plotName,Width=shown.Width,Depth=shown.Depth,Area=shown.Area,MinX=shown.MinX,MinZ=shown.MinZ,MaxX=shown.MaxX,MaxZ=shown.MaxZ});
             }, Token).ConfigureAwait(false);
             if (preview == null || geometry == null || asset == null) return description;
             // Limit per-frame raycasts and reliable packets; cancellation must work during unload.
@@ -237,4 +245,5 @@ public sealed class ClaimToolListener:IEventListener<UnturnedPlayerPluginKeyStat
   catch(Exception ex){m_Log.LogError(ex,"Claim tool operation failed");}
  }
 }
+
 

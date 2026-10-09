@@ -16,7 +16,7 @@ public sealed class ProtectionListener :
  private readonly TeleportService m_Teleport;
  private readonly IProtectionService m_Protection;private readonly IGridService m_Grid;
  public ProtectionListener(IProtectionService protection,IGridService grid,TeleportService teleport){m_Teleport=teleport;m_Protection=protection;m_Grid=grid;}
- private bool Allowed(ulong player,float x,float z,LandAction action)=>m_Protection.Can(new PlayerId(player),m_Grid.FromWorld(Level.info.name,x,z),action);
+ private bool Allowed(ulong player,float x,float z,LandAction action)=>m_Protection.CanAt(new PlayerId(player),m_Grid.FromWorld(Level.info.name,x,z),x,z,action);
  public Task HandleEventAsync(object? sender,UnturnedBuildableDeployingEvent e){e.IsCancelled|=!Allowed(e.Owner,e.Point.x,e.Point.z,LandAction.Build);return Task.CompletedTask;}
  public Task HandleEventAsync(object? sender,UnturnedBuildableDamagingEvent e){var p=e.Buildable.Transform.Position;e.IsCancelled|=!Allowed(e.Instigator?.SteamId.m_SteamID??0,p.X,p.Z,LandAction.Damage);return Task.CompletedTask;}
  public Task HandleEventAsync(object? sender,UnturnedBuildableSalvagingEvent e){var p=e.Buildable.Transform.Position;e.IsCancelled|=!Allowed(e.Instigator?.SteamId.m_SteamID??0,p.X,p.Z,LandAction.Salvage);return Task.CompletedTask;}
@@ -36,3 +36,4 @@ public sealed class ProtectionListener :
  public Task HandleEventAsync(object? sender,UnturnedPlayerRevivedEvent e){m_Teleport.ResetLife(e.Player.SteamId.m_SteamID);return Task.CompletedTask;}
 
 }
+

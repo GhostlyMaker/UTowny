@@ -44,6 +44,8 @@ public sealed class ServiceConfigurator : IPluginContainerConfigurator
   context.ContainerBuilder.RegisterType<TownService>().As<ITownService>().SingleInstance();
   context.ContainerBuilder.RegisterType<GridService>().As<IGridService>().SingleInstance();
   context.ContainerBuilder.RegisterType<ClaimService>().As<IClaimService>().SingleInstance();
+  context.ContainerBuilder.RegisterType<RectPlotService>().SingleInstance();
+  context.ContainerBuilder.RegisterType<PlotSelectionService>().SingleInstance();
   context.ContainerBuilder.RegisterType<PlotService>().As<IPlotService>().SingleInstance();
   context.ContainerBuilder.RegisterType<UTownyApi>().AsSelf().As<IUTownyApi>().SingleInstance();
   context.ContainerBuilder.RegisterType<NationService>().AsSelf().As<INationService>().SingleInstance();
@@ -57,3 +59,4 @@ public sealed class ServiceConfigurator : IPluginContainerConfigurator
   context.ContainerBuilder.RegisterType<UTowny.Protection.ProtectionService>().AsSelf().As<UTowny.Protection.IProtectionService>().SingleInstance();
  }
 }
+

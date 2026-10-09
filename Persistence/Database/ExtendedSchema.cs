@@ -32,6 +32,32 @@ CREATE TRIGGER town_money_insert BEFORE INSERT ON towns WHEN typeof(NEW.bank_bal
 CREATE TRIGGER town_money_update BEFORE UPDATE OF bank_balance ON towns WHEN typeof(NEW.bank_balance)<>'integer' OR NEW.bank_balance<0 BEGIN SELECT RAISE(ABORT,'invalid town balance'); END;
 UPDATE schema_version SET version=3;");
   }
+  if(s.Number("SELECT version FROM schema_version")<4)
+  {
+   s.Execute(@"
+CREATE TABLE rect_plots(
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ town_id INTEGER NOT NULL REFERENCES towns(id) ON DELETE CASCADE,
+ name TEXT NOT NULL COLLATE NOCASE,
+ map_id TEXT NOT NULL,
+ min_x INTEGER NOT NULL,min_z INTEGER NOT NULL,max_x INTEGER NOT NULL,max_z INTEGER NOT NULL,
+ owner_steam64 INTEGER NULL REFERENCES players(steam64) ON DELETE SET NULL,
+ for_sale INTEGER NOT NULL DEFAULT 0 CHECK(for_sale IN (0,1)),
+ price INTEGER NOT NULL DEFAULT 0 CHECK(typeof(price)='integer' AND price>=0),
+ protection_flags INTEGER NOT NULL DEFAULT 0 CHECK(protection_flags BETWEEN 0 AND 31),
+ UNIQUE(town_id,name),CHECK(min_x<max_x AND min_z<max_z),CHECK(owner_steam64 IS NULL OR for_sale=0)
+);
+CREATE INDEX ix_rect_plots_town ON rect_plots(town_id,map_id);
+CREATE TRIGGER rect_plot_overlap_insert BEFORE INSERT ON rect_plots
+WHEN EXISTS(SELECT 1 FROM rect_plots p WHERE p.map_id=NEW.map_id AND p.min_x<NEW.max_x AND p.max_x>NEW.min_x AND p.min_z<NEW.max_z AND p.max_z>NEW.min_z)
+BEGIN SELECT RAISE(ABORT,'overlapping plot'); END;
+CREATE TRIGGER rect_plot_overlap_update BEFORE UPDATE OF min_x,min_z,max_x,max_z,map_id ON rect_plots
+WHEN EXISTS(SELECT 1 FROM rect_plots p WHERE p.id<>NEW.id AND p.map_id=NEW.map_id AND p.min_x<NEW.max_x AND p.max_x>NEW.min_x AND p.min_z<NEW.max_z AND p.max_z>NEW.min_z)
+BEGIN SELECT RAISE(ABORT,'overlapping plot'); END;
+CREATE TRIGGER rect_plots_member_removed AFTER DELETE ON town_members
+BEGIN UPDATE rect_plots SET owner_steam64=NULL,for_sale=0,price=0,protection_flags=0 WHERE town_id=OLD.town_id AND owner_steam64=OLD.player_steam64; END;
+UPDATE schema_version SET version=4;");
+  }
   var fingerprint=m_Options.Value.Claims.GridSizeMeters+":"+m_Options.Value.Claims.MapIdOverride;
   var saved=s.Scalar("SELECT value FROM metadata WHERE key='grid_configuration'") as string;
   if(saved!=null&&saved!=fingerprint&&s.Number("SELECT COUNT(*) FROM claims")>0)throw new InvalidOperationException("Changing grid size/map identity requires migrating or removing existing claims first");
@@ -39,3 +65,4 @@ UPDATE schema_version SET version=3;");
   s.Commit();
  }
 }
+

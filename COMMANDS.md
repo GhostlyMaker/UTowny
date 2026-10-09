@@ -70,10 +70,24 @@ Player transfers reject self-payment, nonpositive amounts, overdrafts, unknown r
 
 ## Town grid (rc.8)
 
-`/t show` targets the town whose land you stand on, otherwise your own town; without either, it previews the current cell. The response reports cell count, cell dimensions, marker count and your current cell coordinates. All shared cell dividers are shown once, and unclaimed gaps remain outside the boundary. Use `/t show cell` while deciding which cell to sell, then `/plot forsale <price>` to list that whole cell. Each plot still equals one ownership cell; this version does not add custom-sized subdivisions or multi-cell sales. The visual preview never changes claims, ownership, balances, or existing plots.
+`/t show` targets the town whose land you stand on, otherwise your own town; without either, it previews the current cell. The response reports cell count, cell dimensions, marker count and your current cell coordinates. All shared cell dividers are shown once, and unclaimed gaps remain outside the boundary. Use `/t show cell` while deciding which cell to sell, then `/plot forsale <price>` to list that whole cell. The rc.8 preview showed ownership cells; rc.10 adds the rectangular plots below. The visual preview never changes claims, ownership, balances, or existing plots.
 
 Spacing defaults to two metres. Old config/translation files can remain; new messages have built-in fallbacks. The effect must be visible on clients; its own particle/splatter lifetime still applies. `/t show off` requests effect removal but some splatter decals may persist until their asset lifetime ends.
 
 ## rc.9 preview duration
 
 Boundary markers are re-sent every `visualization.refresh_seconds` (default 1 second), independently of database/tax processing, until `duration_seconds` expires after the initial drawing completes. The new setting defaults automatically for existing configs. Cached terrain positions avoid repeat raycasts. Refresh work is bounded to 512 markers per player per 100ms tick; large previews or server lag may delay refresh. `/t show off`, replacement previews, disconnect, map changes and unload stop the old refresh. No respawns occur at or after the deadline; effect clearing is requested then. Client particle/splatter tails can still outlast cleanup, and very short-lived assets may need a shorter refresh interval.
+
+
+## Rectangular plots (rc.10)
+
+1. `/plot pos1` at the first corner (or `/plot pos1 <x> <z>`).
+2. `/plot pos2` at the opposite corner (or `/plot pos2 <x> <z>`). A valid selection previews automatically.
+3. `/plot preview` to check the selection again.
+4. `/plot create HouseOne 1000` to create and list it for a total price of 1000.
+
+All heights above/below the rectangle are included. Mayor/Co-Mayor authority and the relevant OpenMod permission are both required. Corners round to metre boundaries. Select 0,0 and 32,32 for a 32 × 32 metre plot, then 32,0 and 64,32 for an adjacent plot. Use coordinates belonging to your actual town, not these illustrative numbers.
+
+`/plot show` previews the saved rectangle at your feet (or the current cell if there is none). `/plot info` reports owner, price and exact bounds. `/plot buy` buys the rectangle at your feet. Existing sale/unlist/permission commands target that rectangle; outside a rectangle they retain whole-cell behaviour, except subdivided cells cannot be sold as a whole. `/plot clear` cancels selection. `/plot release confirm` returns an owned rectangle to the town without a refund. `/plot delete confirm` removes an unowned rectangle while leaving the town claim intact.
+
+Rectangles cannot overlap, extend outside the town, or cover legacy owned/listed cells. Cells with rectangles cannot be unclaimed until their rectangles are removed. No 3D plots are included.

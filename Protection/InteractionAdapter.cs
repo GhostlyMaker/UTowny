@@ -9,7 +9,7 @@ public sealed class InteractionAdapter : IDisposable
  public InteractionAdapter(IProtectionService protection,IGridService grid){m_Protection=protection;m_Grid=grid;}
  public void Start()
  {
-  s_Allow=(component,player)=>{var p=component.transform.position;return m_Protection.Can(new PlayerId(player.channel.owner.playerID.steamID.m_SteamID),m_Grid.FromWorld(Level.info.name,p.x,p.z),LandAction.Interact);};
+  s_Allow=(component,player)=>{var p=component.transform.position;return m_Protection.CanAt(new PlayerId(player.channel.owner.playerID.steamID.m_SteamID),m_Grid.FromWorld(Level.info.name,p.x,p.z),p.x,p.z,LandAction.Interact);};
   var names=new Dictionary<Type,string[]>{
    [typeof(InteractableDoor)]=new[]{"ReceiveToggleRequest"},[typeof(InteractableGenerator)]=new[]{"ReceiveToggleRequest"},
    [typeof(InteractableFire)]=new[]{"ReceiveToggleRequest"},[typeof(InteractableOven)]=new[]{"ReceiveToggleRequest"},
@@ -24,3 +24,4 @@ public sealed class InteractionAdapter : IDisposable
  {var player=context.GetPlayer();return player!=null&&s_Allow?.Invoke(__instance,player)==true;}
  public void Dispose(){m_Harmony.UnpatchAll("UTowny.interactions");s_Allow=null;}
 }
+

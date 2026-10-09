@@ -19,3 +19,8 @@ UTowny registers all of the gameplay action nodes above during startup. Root com
 `UTowny:admin` also exempts the caller from town-creation playtime, minimum balance and the creation fee. `/t new` uses the existing `UTowny:commands.town.create` permission. `/towny` is an alias for the town root. `/t help` uses town info permission.
 
 Player transfers require `UTowny:commands.pay`. They never use the admin money-creation commands. Admin balance set/add/remove accept online player names or Steam64 IDs and remain protected by the admin root and `UTowny:admin`.
+
+
+## Rectangular plot permissions (rc.10)
+
+Additional registered permissions: `UTowny:commands.plot.pos1`, `.pos2`, `.create`, `.show`, `.preview`, `.clear`, `.delete`, `.release` (each suffix appended to `UTowny:commands.plot`). Existing `.info`, `.buy`, `.forsale`, `.notforsale`, `.permissions` still apply. Registration does not grant access automatically. Leadership checks are separate: mayor/co-mayor selects, creates, lists and deletes unowned plots; only the plot owner releases it. Owners or leadership manage flags. Wildcard roles already covering plot commands need no extra entries.

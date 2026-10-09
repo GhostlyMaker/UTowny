@@ -9,6 +9,7 @@ namespace UTowny.Protection;
 public interface IProtectionService
 {
  bool Can(PlayerId player,GridCoord grid,LandAction action);
+ bool CanAt(PlayerId player,GridCoord grid,float x,float z,LandAction action);
  bool CanPvp(PlayerId attacker,PlayerId victim,GridCoord grid);
 }
 public sealed class ProtectionService : IProtectionService
@@ -20,7 +21,9 @@ public sealed class ProtectionService : IProtectionService
  public ProtectionService(IWorldStateCache cache,IWarService wars,MutationGate gate){m_Gate=gate;m_Cache=cache;m_Wars=wars;}
  public void SetBypass(PlayerId player,bool enabled){if(enabled)m_Bypass[player.Value]=DateTime.UtcNow.AddMinutes(5);else m_Bypass.TryRemove(player.Value,out _);}
  public bool HasBypass(PlayerId player)=>m_Bypass.TryGetValue(player.Value,out var until)&&until>DateTime.UtcNow;
- public bool Can(PlayerId player,GridCoord grid,LandAction action)
+ public bool Can(PlayerId player,GridCoord grid,LandAction action)=>CanCore(player,grid,null,null,action);
+ public bool CanAt(PlayerId player,GridCoord grid,float x,float z,LandAction action)=>CanCore(player,grid,x,z,action);
+ private bool CanCore(PlayerId player,GridCoord grid,float? x,float? z,LandAction action)
  {
   if(!Ready||!m_Gate.Healthy)return false;
   if(HasBypass(player))return true;
@@ -28,6 +31,17 @@ public sealed class ProtectionService : IProtectionService
   var town=m_Cache.GetTown(claim.TownId);if(town==null)return false;
   var member=m_Cache.GetMembership(player);
   if(member?.TownId==claim.TownId && member.Role>=TownRole.CoMayor)return true;
+  // Legacy grid-only integrations cannot establish a sub-plot target: fail closed.
+  if(x==null&&m_Cache.GetTownPlots(claim.TownId).Count>0)return false;
+  if(x!=null&&z!=null)
+  {
+   var plot=m_Cache.GetPlotAt(grid,x.Value,z.Value);
+   if(plot!=null)
+   {
+    if(plot.Owner==player)return true;
+    return ((plot.Owner!=null?plot.ProtectionFlags:town.ProtectionFlags)&(long)action)!=0;
+   }
+  }
   if(claim.PlotOwner==player)return true;
   var allowed=claim.PlotOwner!=null?claim.ProtectionFlags:town.ProtectionFlags;
   return (allowed&(long)action)!=0;
@@ -41,3 +55,4 @@ public sealed class ProtectionService : IProtectionService
   var claim=m_Cache.GetClaim(grid);return claim==null||m_Cache.GetTown(claim.TownId)?.PvpEnabled==true;
  }
 }
+
