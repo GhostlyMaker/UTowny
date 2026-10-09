@@ -47,3 +47,6 @@ PermissionRegression.Run();
 await CreationRegression.RunAsync();
 
 CombatRegression.Run();
+
+
+GridRegression.Run();

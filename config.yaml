@@ -69,8 +69,12 @@ visualization:
   claim_tool_asset_id: 0
   duration_seconds: 8
   effect_asset_id: 0
+  marker_spacing_meters: 2
+  marker_height_meters: 0.15
+  max_markers: 4096
   preview_key: 0
   claim_key: 1
 
 admin:
   log_balance_threshold: 100000
+

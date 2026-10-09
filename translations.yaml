@@ -90,3 +90,11 @@ admin_balance_usage: "Usage: /utowny addbalance <player name|Steam64> <amount>. 
 admin_balance_updated: "Admin balance update completed: {Action} {Amount} for {Player}. Your own balance was not charged."
 
 combat_countdown: "You can teleport in {Seconds} seconds after your last PvP hit."
+
+
+grid_usage: "Usage: /t show [town|cell|off]. Town shows the outer boundary and every claimed cell."
+grid_off: "Boundary preview stopped. Effect splatters may remain until their own lifetime ends."
+grid_cancelled: "Boundary preview stopped."
+grid_empty: "Your town has no claimed cells on this map. Use /t show cell to preview the cell here."
+grid_too_large: "The full town grid exceeds the marker limit. Use /t show cell, or ask an admin to increase marker_spacing_meters or max_markers. No partial grid was drawn."
+grid_shown: "Showing {Name}: {Cells} cell(s), {Size} x {Size} metres each; outer boundary and internal grid, {Markers} markers. Current cell: {X}, {Z}. /t show cell isolates this cell; /t show off stops the preview."

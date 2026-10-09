@@ -21,9 +21,13 @@ public sealed class ConfigValidator : IValidateOptions<UTownyOptions>
         if(o.Teleportation.Cost<0||o.Teleportation.WarmupSeconds<0||o.Teleportation.CooldownSeconds<0||o.Teleportation.CombatLockSeconds<0)errors.Add("Teleport settings cannot be negative");
         if(o.Towns.MinimumBalance<0)errors.Add("Minimum balance cannot be negative");
         if(o.Visualization.DurationSeconds<1||o.Visualization.DurationSeconds>60||o.Visualization.ClaimKey>4||o.Visualization.PreviewKey>4||o.Visualization.ClaimKey==o.Visualization.PreviewKey)errors.Add("Visualization settings are invalid");
+        if(float.IsNaN(o.Visualization.MarkerSpacingMeters)||float.IsInfinity(o.Visualization.MarkerSpacingMeters)||o.Visualization.MarkerSpacingMeters<0.5f||o.Visualization.MarkerSpacingMeters>16f)errors.Add("visualization.marker_spacing_meters must be between 0.5 and 16");
+        if(float.IsNaN(o.Visualization.MarkerHeightMeters)||float.IsInfinity(o.Visualization.MarkerHeightMeters)||o.Visualization.MarkerHeightMeters<0.02f||o.Visualization.MarkerHeightMeters>2f)errors.Add("visualization.marker_height_meters must be between 0.02 and 2");
+        if(o.Visualization.MaxMarkers<128||o.Visualization.MaxMarkers>8192)errors.Add("visualization.max_markers must be between 128 and 8192");
         if(o.Shop.MaxBatch<1||o.Shop.MaxBatch>1000)errors.Add("Shop batch must be between 1 and 1000");
         foreach(var item in o.Shop.Items.Values)if(item.AssetId==0||item.BuyPrice<0||item.SellPrice<0||item.SellPrice>item.BuyPrice)errors.Add("Shop item/prices are invalid");
         if(Path.GetFileName(o.Database.FileName)!=o.Database.FileName)errors.Add("Database file must be a filename");
         return errors.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(errors);
     }
 }
+

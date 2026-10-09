@@ -51,3 +51,10 @@ CI tests real SQLite transfers for conservation of funds, overdrafts, invalid/se
 ## rc.7 combat and effect diagnosis
 
 CI covers environmental/self/zero damage, PvP tagging both parties, combat expiry despite recurring environment damage, per-player reset on death/respawn, and zero-duration lock. Server wiring records the actual Damaged event, after protection cancellation, instead of the preliminary Damaging event. Effect previews now use reliable TriggerEffectParameters with upward direction and the requesting player target. Test `/utowny effect 146` in-game; ID existence does not guarantee a visible suitable particle on clients. Verify accepted PvP blocks spawn, blocked PvP does not, environment damage cancels only an active warmup, and respawning clears old locks.
+
+## rc.8 town boundaries and cell grid
+
+CI tests actual geometry for adjacent cells, a four-plot block, L-shaped territory, a hole, disconnected territory, negative coordinates, cross-map exclusion, duplicate claims, non-divisible spacing, and explicit rejection at the marker budget. It also verifies default and invalid visualization configuration. Rendering does not write ownership or plot data.
+
+On the Windows server, keep effect 2 and test `/t show` on one claim and after adding adjacent claims. Walk to each boundary: internal and outer edges should have markers at the configured spacing, including on slopes and near fences/trees. Verify `/t show cell`, `/t show off`, no markers sent to other players, the cooldown, and `openmod reload` during a large preview. Confirm existing `/plot forsale` and `/plot buy` still refer to a whole cell. Check effect-specific splatter lifetime separately; the asset may retain decals despite effect cleanup. Full custom-sized plots remain outside this release.
+

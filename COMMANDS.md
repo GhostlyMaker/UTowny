@@ -15,7 +15,9 @@
 | `/t mayor <player>` | Transfer mayorship |
 | `/t disband confirm` | Delete town and release territory |
 | `/t deposit <amount>` | Transfer personal funds to treasury |
-| `/t claim`, `/t unclaim`, `/t show` | Operate on the current grid cell |
+| `/t claim`, `/t unclaim` | Claim/release the current ownership cell |
+| `/t show [town]` | Show town outer boundary and grid of all its claimed cells on this map |
+| `/t show cell`, `/t show off` | Isolate the current cell / stop the preview |
 | `/t pvp on|off` | Mayor changes town PvP |
 | `/t tax on|off`, `/t tax set <amount>` | Mayor configures resident taxes; inspect through `/t info` |
 | `/t setspawn`, `/t spawn [town]` | Set/use town spawn |
@@ -64,3 +66,10 @@ UTowny chat uses #00AE62. Spawn teleport sends a countdown during the configured
 Player transfers reject self-payment, nonpositive amounts, overdrafts, unknown recipients, and receiver overflow. Debit and credit commit together.
 
 `/utowny effect <effect ID>` tests a loaded effect three metres in front of the administrator and reports the asset lifetime. It does not change visualization config. Combat lock applies to actual damage between different players, not environmental or self-damage. Death and respawn clear that player's combat lock. Damage still cancels an active warmup when configured.
+
+
+## Town grid (rc.8)
+
+`/t show` targets the town whose land you stand on, otherwise your own town; without either, it previews the current cell. The response reports cell count, cell dimensions, marker count and your current cell coordinates. All shared cell dividers are shown once, and unclaimed gaps remain outside the boundary. Use `/t show cell` while deciding which cell to sell, then `/plot forsale <price>` to list that whole cell. Each plot still equals one ownership cell; this version does not add custom-sized subdivisions or multi-cell sales. The visual preview never changes claims, ownership, balances, or existing plots.
+
+Spacing defaults to two metres. Old config/translation files can remain; new messages have built-in fallbacks. The effect must be visible on clients; its own particle/splatter lifetime still applies. `/t show off` requests effect removal but some splatter decals may persist until their asset lifetime ends.

@@ -76,7 +76,7 @@ public sealed class CommandRouter
      case "demote":result=await m_Manage.RoleAsync(id,targetPlayer,TownRole.Resident);break;
      case "mayor":result=await m_Manage.RoleAsync(id,targetPlayer,TownRole.Mayor);break;
      case "disband":if(Arg(1)!="confirm")throw new ArgumentException();result=await m_Manage.DisbandAsync(id);break;
-     case "show":result=await m_Tool.ShowAsync(user!);break;
+     case "show":return await m_Tool.ShowAsync(user!,args.Length>1?Arg(1):"town");
      case "claim":var claim=await m_Claims.ClaimAsync(id,grid);result=new(claim.Success,claim.Code);break;
      case "unclaim":result=await m_Land.UnclaimAsync(id,grid);break;
      case "pvp":case "public":result=await m_Manage.SetAsync(id,op,Toggle(Arg(1)));break;
@@ -139,7 +139,7 @@ public sealed class CommandRouter
  {var value=m_Text[key,args];return value.ResourceNotFound?fallback:value.Value;}
  private string Help(string group)=>Message(group+"_help",group switch
  {
-  "town"=>"Town commands: /t create <name> (or /t new <name>), /t info [name], /t list, /t invite <player>, /t accept <town>, /t deposit <amount>, /t claim, /t setspawn, /t spawn. Example: /t create VazerTown",
+  "town"=>"Town commands: /t create <name> (or /t new <name>), /t info [name], /t list, /t invite <player>, /t accept <town>, /t deposit <amount>, /t claim, /t show [town|cell|off], /t setspawn, /t spawn. Example: /t create VazerTown",
   "nation"=>"Nation commands: /n create <name>, /n info, /n members, /n invite <town>, /n accept <nation>. You must belong to a town first.",
   "plot"=>"Plot commands: /plot info, /plot buy, /plot forsale <price>, /plot notforsale, /plot permissions <action> on|off.",
   "war"=>"War commands: /war request|accept|decline|cancel <town>, /war info, /war list.",
@@ -155,3 +155,4 @@ public sealed class CommandRouter
  private Town OwnTown(PlayerId id)=>m_Towns.GetTown(id)??throw new CommandFeedbackException("not_in_town");
  private static long Toggle(string value)=>value.ToLowerInvariant() switch {"on"=>1,"off"=>0,_=>throw new ArgumentException()};
 }
+

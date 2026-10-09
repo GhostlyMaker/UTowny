@@ -18,7 +18,7 @@ public sealed class UTownyPlugin:OpenModUnturnedPlugin
   {
   await Task.Run(async()=>{await m_Migrator.MigrateAsync();await m_Extended.InitializeAsync();await m_Cache.RebuildAsync();await m_Wars.RefreshAsync();});
   await Notify(await m_Scheduled.ProcessAsync());
-  m_Stop=new CancellationTokenSource();m_Teleport.Token=m_Stop.Token;
+  m_Stop=new CancellationTokenSource();m_Teleport.Token=m_Stop.Token;m_Tool.Token=m_Stop.Token;
   await UniTask.SwitchToMainThread();m_Interactions.Start();
   var online=m_Users.GetOnlineUsers().Select(u=>new PlayerId(u.Player.SteamId.m_SteamID)).ToArray();
   foreach(var id in online)await m_Playtime.PlayerConnectedAsync(id);
@@ -80,3 +80,4 @@ public sealed class UTownyPlugin:OpenModUnturnedPlugin
   await work.ConfigureAwait(false);
  }
 }
+

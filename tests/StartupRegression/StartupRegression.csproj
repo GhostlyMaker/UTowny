@@ -6,6 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../Visualization/ClaimGridGeometry.cs" Link="Visualization/ClaimGridGeometry.cs" />
+    <Compile Include="../../Services/GridService.cs" Link="Services/GridService.cs" />
+    <Compile Include="../../Configuration/ConfigValidator.cs" Link="Configuration/ConfigValidator.cs" />
     <Compile Include="../../Services/TeleportActivity.cs" Link="Services/TeleportActivity.cs" />
     <Compile Include="../../Services/EconomyService.cs" Link="Services/EconomyService.cs" />
     <Compile Include="../../Utilities/UTownyChat.cs" Link="Utilities/UTownyChat.cs" />
@@ -33,3 +36,4 @@
     <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
   </ItemGroup>
 </Project>
+
