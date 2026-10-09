@@ -1,4 +1,4 @@
-# UTowny 1.0.0-rc.8
+# UTowny 1.0.0-rc.9
 
 UTowny is one OpenMod gameplay plugin (`UTowny.dll`) for Unturned. It provides persistent towns, grid claims, private plots, virtual currency, a Scrap shop, town spawns, taxes, upkeep, nations, alliances and consensual PvP wars.
 
@@ -42,7 +42,7 @@ Town spawn supports one destination, public/private access, movement/damage canc
 
 Set `visualization.claim_tool_asset_id` to an installed item asset and `effect_asset_id` to an installed harmless temporary effect. Both default to zero because there is no universal built-in boundary asset supplied with this plugin. Clients must have the selected effect asset. While holding the item, plugin key 0 previews the town grid and plugin key 1 claims the current cell by default. `/t show` (or `/t show town`) draws the town at your feet, falling back to your own town; without either it previews the current unclaimed cell. It draws every claimed cell on the current map, including the town's outer perimeter, internal dividers, holes and disconnected claims. Shared edges and corners are emitted only once. `/t show cell` isolates the current cell; `/t show off` stops the preview. Markers follow terrain, excluding tree/fence/roof colliders, and are private to the requesting player.
 
-New optional visualization settings: `marker_spacing_meters: 2` (0.5–16), `marker_height_meters: 0.15` (0.02–2), and `max_markers: 4096` (128–8192). Existing configs get these defaults automatically. Rendering uses batches of 64 markers, with cancellable pauses so reload can stop it. Previews are limited to once per three seconds. Oversized full-town previews are rejected with instructions; no incomplete grid is silently presented. Use `/t show cell` or adjust spacing/budget for large towns. Effect clearing is requested after `duration_seconds` from the end of rendering, checked once per second. Particles and especially splatter decals can have their own lifetimes and may disappear earlier or remain after clearing. No permanent structures or map overlays are created.
+New optional visualization settings: `marker_spacing_meters: 2` (0.5–16), `marker_height_meters: 0.15` (0.02–2), and `max_markers: 4096` (128–8192). Existing configs get these defaults automatically. Rendering uses batches of 64 markers, with cancellable pauses so reload can stop it. Previews are limited to once per three seconds. Oversized full-town previews are rejected with instructions; no incomplete grid is silently presented. Use `/t show cell` or adjust spacing/budget for large towns. Effect clearing is requested after `duration_seconds` from the end of rendering, checked roughly every 100 milliseconds. Particles and especially splatter decals can have their own lifetimes and may disappear earlier or remain after clearing. No permanent structures or map overlays are created.
 
 The preview shows actual ownership cells, not decorative subdivisions. A plot is currently one whole claim cell (64 × 64 metres by default); standing in it and using `/plot forsale <price>` lists that cell. Custom-sized plots smaller than a cell are not implemented. Do not change `grid_size_meters` on an existing town to resize plots: that changes the ownership grid and requires an explicit migration.
 
@@ -68,3 +68,7 @@ Run `dotnet restore UTowny.csproj` then `dotnet build UTowny.csproj -c Release -
 
 Original Part 1 has been extended in the same project. `COMMANDS.md`, `permissions.md`, and `VERIFICATION.md` describe the current version.
 
+
+## rc.9 preview duration
+
+Boundary markers are re-sent every `visualization.refresh_seconds` (default 1 second), independently of database/tax processing, until `duration_seconds` expires after the initial drawing completes. The new setting defaults automatically for existing configs. Cached terrain positions avoid repeat raycasts. Refresh work is bounded to 512 markers per player per 100ms tick; large previews or server lag may delay refresh. `/t show off`, replacement previews, disconnect, map changes and unload stop the old refresh. No respawns occur at or after the deadline; effect clearing is requested then. Client particle/splatter tails can still outlast cleanup, and very short-lived assets may need a shorter refresh interval.

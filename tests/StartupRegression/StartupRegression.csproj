@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../Visualization/PreviewRefresh.cs" Link="Visualization/PreviewRefresh.cs" />
     <Compile Include="../../Visualization/ClaimGridGeometry.cs" Link="Visualization/ClaimGridGeometry.cs" />
     <Compile Include="../../Services/GridService.cs" Link="Services/GridService.cs" />
     <Compile Include="../../Configuration/ConfigValidator.cs" Link="Configuration/ConfigValidator.cs" />

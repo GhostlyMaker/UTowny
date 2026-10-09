@@ -24,6 +24,7 @@ public sealed class ConfigValidator : IValidateOptions<UTownyOptions>
         if(float.IsNaN(o.Visualization.MarkerSpacingMeters)||float.IsInfinity(o.Visualization.MarkerSpacingMeters)||o.Visualization.MarkerSpacingMeters<0.5f||o.Visualization.MarkerSpacingMeters>16f)errors.Add("visualization.marker_spacing_meters must be between 0.5 and 16");
         if(float.IsNaN(o.Visualization.MarkerHeightMeters)||float.IsInfinity(o.Visualization.MarkerHeightMeters)||o.Visualization.MarkerHeightMeters<0.02f||o.Visualization.MarkerHeightMeters>2f)errors.Add("visualization.marker_height_meters must be between 0.02 and 2");
         if(o.Visualization.MaxMarkers<128||o.Visualization.MaxMarkers>8192)errors.Add("visualization.max_markers must be between 128 and 8192");
+        if(float.IsNaN(o.Visualization.RefreshSeconds)||float.IsInfinity(o.Visualization.RefreshSeconds)||o.Visualization.RefreshSeconds<0.25f||o.Visualization.RefreshSeconds>5f)errors.Add("visualization.refresh_seconds must be between 0.25 and 5");
         if(o.Shop.MaxBatch<1||o.Shop.MaxBatch>1000)errors.Add("Shop batch must be between 1 and 1000");
         foreach(var item in o.Shop.Items.Values)if(item.AssetId==0||item.BuyPrice<0||item.SellPrice<0||item.SellPrice>item.BuyPrice)errors.Add("Shop item/prices are invalid");
         if(Path.GetFileName(o.Database.FileName)!=o.Database.FileName)errors.Add("Database file must be a filename");

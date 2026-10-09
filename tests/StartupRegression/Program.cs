@@ -50,3 +50,5 @@ CombatRegression.Run();
 
 
 GridRegression.Run();
+
+RefreshRegression.Run();

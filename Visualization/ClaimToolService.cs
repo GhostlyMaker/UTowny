@@ -23,7 +23,10 @@ public sealed class ClaimToolService
     private sealed class Preview
     {
         public ushort Effect;
-        public DateTime Expires = DateTime.MaxValue;
+        public EffectAsset Asset = null!;
+        public UnturnedUser User = null!;
+        public string MapId = "";
+        public PreviewRefresh<Vector3> Refresh = null!;
     }
     private readonly IGridService m_Grid;
     private readonly IOptions<UTownyOptions> m_Options;
@@ -93,7 +96,8 @@ public sealed class ClaimToolService
                 if (geometry.CellCount == 0)
                 { description = Message("grid_empty", "Your town has no claimed cells on this map. Use /t show cell to preview the cell here."); return; }
                 Clear(id);
-                preview = new Preview { Effect = options.EffectAssetId };
+                preview = new Preview { Effect = options.EffectAssetId, Asset = asset, User = user, MapId = mapId,
+                    Refresh = new PreviewRefresh<Vector3>(TimeSpan.FromSeconds(options.RefreshSeconds)) };
                 m_Visible[id] = preview;
                 description = Message("grid_shown",
                     $"Showing {label}: {geometry.CellCount} cell(s), {size} x {size} metres each; outer boundary and internal grid, {geometry.Markers.Count} markers. Current cell: {current.X}, {current.Z}. /t show cell isolates this cell; /t show off stops the preview.",
@@ -121,6 +125,7 @@ public sealed class ClaimToolService
                             out var hit, 4096f, RayMasks.GROUND, QueryTriggerInteraction.Ignore))
                             point.y = hit.point.y + options.MarkerHeightMeters;
                         Send(asset, user, point);
+                        preview.Refresh.Add(point, DateTime.UtcNow);
                     }
                 }, Token).ConfigureAwait(false);
                 if (!active) return Message("grid_cancelled", "Boundary preview stopped.");
@@ -128,7 +133,7 @@ public sealed class ClaimToolService
             await UnityDispatch.RunAsync(() =>
             {
                 if (m_Visible.TryGetValue(id, out var current) && ReferenceEquals(current, preview))
-                    preview.Expires = DateTime.UtcNow.AddSeconds(options.DurationSeconds);
+                    preview.Refresh.Complete(DateTime.UtcNow, TimeSpan.FromSeconds(options.DurationSeconds));
             }, Token).ConfigureAwait(false);
             return description;
         }
@@ -137,15 +142,30 @@ public sealed class ClaimToolService
         finally
         {
             // If rendering failed, let the scheduler/unload clear the partially sent effects.
-            if (preview != null && preview.Expires == DateTime.MaxValue)
-                preview.Expires = DateTime.UtcNow;
+            if (preview != null && preview.Refresh.Expires == DateTime.MaxValue)
+            {
+                // Cleanup is performed by the visual loop or unload on Unity's thread.
+                // Volatile dictionary removal also prevents later refresh of this session.
+                using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+                try
+                {
+                    await UnityDispatch.RunAsync(() =>
+                    {
+                        if (m_Visible.TryGetValue(id, out var active) && ReferenceEquals(active, preview)) Clear(id);
+                    }, cleanup.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) { /* Unload retries cosmetic cleanup. */ }
+            }
         }
     }
 
     private void Clear(ulong id)
     {
         if (m_Visible.TryRemove(id, out var preview))
+        {
+            preview.Refresh.Stop();
             EffectManager.askEffectClearByID(preview.Effect, new CSteamID(id));
+        }
     }
     private static void Send(EffectAsset asset, UnturnedUser user, Vector3 point)
     {
@@ -165,13 +185,32 @@ public sealed class ClaimToolService
         }, Token).ConfigureAwait(false);
         return message;
     }
+    public async Task RefreshAsync(CancellationToken token)
+    {
+        if (m_Visible.IsEmpty) return;
+        await UnityDispatch.RunAsync(() =>
+        {
+            foreach (var pair in m_Visible.ToArray())
+            {
+                var preview = pair.Value;
+                var now = DateTime.UtcNow;
+                if (preview.Refresh.IsExpired(now) || preview.User.Player.Player == null
+                    || !Provider.clients.Any(c => c.player == preview.User.Player.Player)
+                    || m_Grid.FromWorld(Level.info.name, 0, 0).MapId != preview.MapId)
+                { Clear(pair.Key); continue; }
+                // Reuse terrain positions, never repeat raycasts during refresh.
+                foreach (var point in preview.Refresh.TakeDue(now, 512))
+                    Send(preview.Asset, preview.User, point);
+            }
+        }, token).ConfigureAwait(false);
+    }
     public async Task ClearExpiredAsync(bool all = false, CancellationToken token = default)
     {
         if (m_Visible.IsEmpty) return;
         await UnityDispatch.RunAsync(() =>
         {
             foreach (var pair in m_Visible.ToArray())
-                if (all || pair.Value.Expires <= DateTime.UtcNow) Clear(pair.Key);
+                if (all || pair.Value.Refresh.IsExpired(DateTime.UtcNow)) Clear(pair.Key);
         }, token).ConfigureAwait(false);
     }
 }

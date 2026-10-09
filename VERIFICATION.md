@@ -58,3 +58,9 @@ CI tests actual geometry for adjacent cells, a four-plot block, L-shaped territo
 
 On the Windows server, keep effect 2 and test `/t show` on one claim and after adding adjacent claims. Walk to each boundary: internal and outer edges should have markers at the configured spacing, including on slopes and near fences/trees. Verify `/t show cell`, `/t show off`, no markers sent to other players, the cooldown, and `openmod reload` during a large preview. Confirm existing `/plot forsale` and `/plot buy` still refer to a whole cell. Check effect-specific splatter lifetime separately; the asset may retain decals despite effect cleanup. Full custom-sized plots remain outside this release.
 
+
+## rc.9 preview duration
+
+Boundary markers are re-sent every `visualization.refresh_seconds` (default 1 second), independently of database/tax processing, until `duration_seconds` expires after the initial drawing completes. The new setting defaults automatically for existing configs. Cached terrain positions avoid repeat raycasts. Refresh work is bounded to 512 markers per player per 100ms tick; large previews or server lag may delay refresh. `/t show off`, replacement previews, disconnect, map changes and unload stop the old refresh. No respawns occur at or after the deadline; effect clearing is requested then. Client particle/splatter tails can still outlast cleanup, and very short-lived assets may need a shorter refresh interval.
+
+Regression tests simulate two-second effects over eight seconds, incremental drawing, bounded batches, expiry, cancellation and replacement sessions. In-game: keep effect 134, duration 8, refresh 1; verify the border remains visible, then test off and reload during a preview.
