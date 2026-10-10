@@ -35,9 +35,9 @@ public sealed class WorldRepository : IWorldRepository
  public async Task<IReadOnlyList<RectPlot>> LoadPlotsAsync(CancellationToken ct=default)
  {
   var list=new List<RectPlot>();await using var db=await m_Db.OpenAsync(ct);await using var c=db.CreateCommand();
-  c.CommandText="SELECT id,town_id,name,map_id,min_x,min_z,max_x,max_z,owner_steam64,for_sale,price,protection_flags FROM rect_plots";
+  c.CommandText="SELECT id,town_id,name,map_id,min_x,min_z,max_x,max_z,owner_steam64,for_sale,price,protection_flags,draft FROM rect_plots";
   await using var r=await c.ExecuteReaderAsync(ct);
-  while(await r.ReadAsync(ct))list.Add(new(r.GetInt64(0),new(r.GetInt64(1)),r.GetString(2),new(r.GetString(3),r.GetInt32(4),r.GetInt32(5),r.GetInt32(6),r.GetInt32(7)),r.IsDBNull(8)?null:new PlayerId(unchecked((ulong)r.GetInt64(8))),r.GetInt64(9)!=0,r.GetInt64(10),r.GetInt64(11)));
+  while(await r.ReadAsync(ct))list.Add(new(r.GetInt64(0),new(r.GetInt64(1)),r.GetString(2),new(r.GetString(3),r.GetInt32(4),r.GetInt32(5),r.GetInt32(6),r.GetInt32(7)),r.IsDBNull(8)?null:new PlayerId(unchecked((ulong)r.GetInt64(8))),r.GetInt64(9)!=0,r.GetInt64(10),r.GetInt64(11),r.GetInt64(12)!=0));
   return list;
  }
  private static DateTime Dt(SqliteDataReader r,int i)=>DateTime.Parse(r.GetString(i),null,System.Globalization.DateTimeStyles.RoundtripKind);

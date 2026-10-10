@@ -19,7 +19,7 @@ internal static class PermissionRegression
         var commands = new Dictionary<string, string>
         {
             ["town"] = "create info list residents invite accept leave kick promote demote mayor disband deposit claim unclaim show pvp tax setspawn spawn public protection",
-            ["plot"] = "info buy forsale notforsale permissions pos1 pos2 create show preview clear delete release",
+            ["plot"] = "info buy forsale notforsale permissions pos1 pos2 create show preview clear delete release plan list select publish unpublish rename move resize price",
             ["nation"] = "create info members allies invite accept kick leave disband ally allyaccept allydecline unally",
             ["war"] = "request accept decline cancel info list"
         };
@@ -39,13 +39,13 @@ internal static class PermissionRegression
         foreach (var root in new[] { "balance", "buy", "sell", "pay" })
             if (CommandPermissions.Resolve(root, "info") != "UTowny:commands." + root) throw new Exception("Economy root permission changed");
         CommandPermissions.Register(registry, plugin);
-        if (registry.GetPermissions(plugin).Count != 56) throw new Exception("Permission registration is not idempotent");
+        if (registry.GetPermissions(plugin).Count != 65) throw new Exception("Permission registration is not idempotent");
         plugin.IsComponentAlive = false;
         if (registry.FindPermission("UTowny:commands.town.info") != null) throw new Exception("Unloaded owner still active");
         var reloaded = new Component();
         CommandPermissions.Register(registry, reloaded);
         if (registry.FindPermission("UTowny:commands.town.info")?.Owner != reloaded) throw new Exception("Reload did not restore permissions");
-        Console.WriteLine("PASS: all 54 gameplay permissions registered without default grants, unknown actions rejected, admin/economy permissions preserved, and registrations survive reload.");
+        Console.WriteLine("PASS: all 63 gameplay permissions registered without default grants, unknown actions rejected, admin/economy permissions preserved, and registrations survive reload.");
     }
 
     private sealed class Component : IOpenModComponent

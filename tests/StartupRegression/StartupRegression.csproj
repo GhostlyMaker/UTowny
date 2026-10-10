@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../Visualization/PlanningGeometry.cs" Link="Visualization/PlanningGeometry.cs" />
     <Compile Include="../../Services/RectPlotService.cs" Link="Services/RectPlotService.cs" />
     <Compile Include="../../Services/PlotSelectionService.cs" Link="Services/PlotSelectionService.cs" />
     <Compile Include="../../Services/PlotService.cs" Link="Services/PlotService.cs" />

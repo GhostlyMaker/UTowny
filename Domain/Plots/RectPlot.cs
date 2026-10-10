@@ -30,4 +30,8 @@ public readonly record struct PlotRect(string MapId, int MinX, int MinZ, int Max
     }
 }
 
-public sealed record RectPlot(long Id, TownId TownId, string Name, PlotRect Bounds, PlayerId? Owner, bool ForSale, long Price, long ProtectionFlags);
+public sealed record RectPlot(long Id, TownId TownId, string Name, PlotRect Bounds, PlayerId? Owner, bool ForSale, long Price, long ProtectionFlags, bool IsDraft = false)
+{
+    public string Status => IsDraft ? "Draft" : Owner != null ? "Owned" : ForSale ? "For sale" : "Town-owned";
+    public string Summary => $"{Name} | {Bounds.Width} x {Bounds.Depth} m | {Status}" + (ForSale ? $": {Price}" : IsDraft ? $" | Planned price: {Price}" : "");
+}

@@ -55,3 +55,5 @@ RefreshRegression.Run();
 
 
 await PlotRegression.RunAsync();
+
+await PlanningRegression.RunAsync();

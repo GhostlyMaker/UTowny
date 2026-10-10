@@ -1,4 +1,4 @@
-# UTowny 1.0.0-rc.10
+# UTowny 1.0.0-rc.11
 
 UTowny is one OpenMod gameplay plugin (`UTowny.dll`) for Unturned. It provides persistent towns, grid claims, private plots, virtual currency, a Scrap shop, town spawns, taxes, upkeep, nations, alliances and consensual PvP wars.
 
@@ -80,7 +80,7 @@ Stop the server and back up the UTowny data directory before upgrading. Schema v
 
 Mayor/Co-Mayor leadership can select opposite corners using `/plot pos1` and `/plot pos2` at their feet. Optional exact integer coordinates are supported: `/plot pos1 <x> <z>` and `/plot pos2 <x> <z>`. Feet coordinates round to the nearest metre (half-metres away from zero). Both corners define boundary lines, not inclusive block positions. The minimum edges are included and maximum edges excluded, so neighbouring rectangles have no overlapping ownership. Selection covers all heights; there is no vertical subdivision.
 
-The second corner previews valid selections and reports dimensions. `/plot preview` repeats the selection preview; `/plot clear` clears it. Selections expire after 30 minutes, disconnect or reload, and reset when selecting on a different map or for a different town. `/plot create <name> <total price>` validates again, creates the rectangle and lists it. Names use 1–32 ASCII letters, digits, underscores or hyphens and are unique within the town ignoring case. Price is a nonnegative integer total, not a price per square metre.
+The second corner previews valid selections and reports dimensions. `/plot preview` repeats the selection preview; `/plot clear` clears it. Selections expire after 30 minutes, disconnect or reload, and reset when selecting on a different map or for a different town. `/plot create <name> [planned price]` validates again and saves an unlisted draft. `/plot publish <name> <price>` explicitly lists it. Names use 1–32 ASCII letters, digits, underscores or hyphens and are unique within the town ignoring case. Price is a nonnegative integer total, not a price per square metre.
 
 Every covered claim must belong to the town. Rectangles are 1–1024 metres per side, covering at most 256 cells. They may cross claim edges but cannot cross wilderness, another town, another rectangular plot, or a whole-cell plot already owned/listed. Unlist an unsold legacy cell before dividing it. Existing owned legacy plots cannot be subdivided by this workflow.
 
@@ -91,3 +91,17 @@ Owners use `/plot release confirm` to return their rectangle to the town without
 Protection uses the object's horizontal position for build, damage, salvage, interaction and vehicle checks; transformed buildables check both old and new positions. Plot owners do not gain rights elsewhere in the same claim. Objects at any height at that position belong to the plot's protection region. The object's anchor/placement point decides its region, not every part of an oversized object's mesh. Town leadership and the explicit admin bypass retain existing rights. Unowned plots and space outside rectangles follow town protection. Vanilla locks and ownership restrictions still apply.
 
 For API integrations, use `IProtectionService.CanAt(player, grid, x, z, action)` with the target object's coordinates. The old grid-only `Can` fails closed for ordinary players in towns with rectangles because it cannot resolve a precise target. Legacy `IPlotService` whole-cell mutations reject cells intersected by rectangular plots. `IWorldStateCache.GetTownPlots` and `GetPlotAt` expose rectangular plot snapshots; `RectPlotService` is available within the plugin scope.
+
+## Town planning (rc.11)
+
+Back up while stopped before upgrading. Schema 5 adds a draft flag; existing owned plots and live listings keep their status. Newly created plots now default to drafts. Optional price in `/plot create` is a planned total and does not list the plot. Drafts persist across restart, reserve their footprint against overlap and unclaiming, and follow town protection. They cannot be purchased.
+
+`/plot plan on` enables a private, continuously refreshed planning overlay for mayor/co-mayor leadership. It includes nearby rectangular plots of every status and the town's outer perimeter, within 96 metres on each horizontal axis. Internal claim grid lines are omitted to keep plot boundaries clear; `/t show` remains available for the claim grid. A selected plot has an additional raised outline. `/plot select <name>` focuses a plot without standing inside it; `/plot select clear` returns to highlighting the plot at your feet. Status is shown in chat only when focus/status changes. This version uses the configured effect for all states, not distinct colours or floating text labels.
+
+The view updates as the mayor walks or the layout changes, with at most 2048 markers (or the configured max_markers if lower). A chat notice explains any dense-view truncation. Move closer or select a plot for priority. Terrain positions are reused where possible. Planning stays enabled until `/plot plan off`, another town/cell preview, disconnect, map change, loss of leadership, or plugin unload. `/plot show <name>` and corner previews retain the planning context. The ordinary duration_seconds still controls non-planning previews.
+
+`/plot list [page]` shows six named plots per page with dimensions and Draft/For sale/Owned/Town-owned status. `/plot info [name]` reports details and coordinates. Within your own town, named show/info commands avoid walking into each plot.
+
+Draft edits: `/plot rename <name> <newname>`, `/plot move <name> <dx> <dz>` (integer world X/Z offsets), `/plot resize <name>` (replaces the rectangle with current pos1/pos2), `/plot price <name> <amount>`, `/plot delete <name> confirm`. For resize, select the plot first so the selection preview can exclude its current footprint from overlap checks. Saving always revalidates against all other plots, ownership and claims.
+
+`/plot publish <name> <price>` lists an unowned plot for the explicit total price. `/plot unpublish <name>` removes it from sale and returns it to draft, retaining the planned price. Existing `/plot forsale <price>` also explicitly publishes the rectangle at your feet. Owned plots cannot be moved, resized, renamed, repriced, published, unpublished or deleted through planning; the owner must release them first. Existing plot purchases and full-height protection remain unchanged. Repeating/duplicating layouts and automatic subdivisions are not included in this release.

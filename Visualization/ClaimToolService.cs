@@ -23,12 +23,20 @@ public sealed class ClaimToolService
 {
     private sealed class Preview
     {
+        public TownId? PlanningTown;
+        public DateTime NextPlanUpdate;
+        public string PlanKey = "";
+        public string FocusMessage = "";
+        public bool BudgetWarning;
+        public Dictionary<PlanningMarker,Vector3> Terrain = new();
         public ushort Effect;
         public EffectAsset Asset = null!;
         public UnturnedUser User = null!;
         public string MapId = "";
         public PreviewRefresh<Vector3> Refresh = null!;
     }
+    private readonly IAuthorizationService m_Auth;
+    private readonly PlotSelectionService m_Selections;
     private readonly IGridService m_Grid;
     private readonly IOptions<UTownyOptions> m_Options;
     private readonly IWorldStateCache m_Cache;
@@ -36,11 +44,75 @@ public sealed class ClaimToolService
     private readonly ConcurrentDictionary<ulong, DateTime> m_Last = new();
     private readonly ConcurrentDictionary<ulong, Preview> m_Visible = new();
     public CancellationToken Token { get; set; }
-    public ClaimToolService(IGridService grid, IOptions<UTownyOptions> options, IWorldStateCache cache, IStringLocalizer text)
-    { m_Grid = grid; m_Options = options; m_Cache = cache; m_Text = text; }
+    public ClaimToolService(IGridService grid, IOptions<UTownyOptions> options, IWorldStateCache cache, IStringLocalizer text, IAuthorizationService auth, PlotSelectionService selections)
+    { m_Auth=auth;m_Selections=selections; m_Grid = grid; m_Options = options; m_Cache = cache; m_Text = text; }
 
     private string Message(string key, string fallback, params object[] args)
     { var value = m_Text[key, args]; return value.ResourceNotFound ? fallback : value.Value; }
+
+    public async Task<string> PlanningAsync(UnturnedUser user,bool enabled)
+    {
+        var reply="";
+        await UnityDispatch.RunAsync(()=>
+        {
+            var id=user.Player.SteamId.m_SteamID;
+            if(!enabled){Clear(id);reply="Planning mode off.";return;}
+            var member=m_Cache.GetMembership(new PlayerId(id));
+            if(member==null||!m_Auth.Can(new PlayerId(id),member.TownId,TownAction.ManagePlot))
+            {reply=m_Text["insufficient_role"];return;}
+            var options=m_Options.Value.Visualization;
+            if(options.EffectAssetId==0||Assets.find(EAssetType.EFFECT,options.EffectAssetId) is not EffectAsset asset)
+            {reply=m_Text["effect_missing"];return;}
+            Clear(id);
+            m_Visible[id]=new Preview{Effect=options.EffectAssetId,Asset=asset,User=user,PlanningTown=member.TownId,
+                MapId=m_Grid.FromWorld(Level.info.name,0,0).MapId,Refresh=new PreviewRefresh<Vector3>(TimeSpan.FromSeconds(options.RefreshSeconds))};
+            reply="Planning mode on: nearby plots and town borders stay visible. /plot list, /plot select <name>, /plot pos1, /plot pos2, /plot create <name> [price]. New plots are drafts. /plot plan off to finish.";
+        },Token).ConfigureAwait(false);
+        return reply;
+    }
+    private bool UpdatePlanning(ulong id,Preview preview,DateTime now,List<Task> messages)
+    {
+        if(preview.NextPlanUpdate>now)return true;
+        preview.NextPlanUpdate=now.AddSeconds(1);
+        var town=preview.PlanningTown!.Value;var player=new PlayerId(id);
+        if(!m_Auth.Can(player,town,TownAction.ManagePlot))
+        {Clear(id);messages.Add(UTownyChat.SendAsync(preview.User,"Planning mode stopped: town leadership is required."));return false;}
+        var position=preview.User.Player.Player.transform.position;
+        var plots=m_Cache.GetTownPlots(town).Where(p=>p.Bounds.MapId==preview.MapId).ToArray();
+        var focused=m_Selections.Focused(player,town);
+        var focus=plots.FirstOrDefault(p=>p.Id==focused)??plots.FirstOrDefault(p=>p.Bounds.Contains(position.x,position.z));
+        var message=focus?.Summary??"Shared town space / outside plots";
+        if(message!=preview.FocusMessage)
+        {preview.FocusMessage=message;messages.Add(UTownyChat.SendAsync(preview.User,message));}
+        var selection=m_Selections.Get(player);
+        var bounds=selection?.Town==town&&selection.Map==preview.MapId?selection.Bounds:null;
+        var claims=m_Cache.GetTownClaims(town).Where(c=>c.Grid.MapId==preview.MapId).Select(c=>c.Grid).ToArray();
+        var options=m_Options.Value.Visualization;
+        var key=$"{Math.Floor(position.x/8)}:{Math.Floor(position.z/8)}:{focus?.Id}:{bounds}:{options.MarkerSpacingMeters}:{options.MarkerHeightMeters}:{options.RefreshSeconds}:"+
+            string.Join(";",plots.Select(p=>$"{p.Id}:{p.Bounds}:{p.Status}:{p.Price}"))+string.Join(";",claims);
+        if(key==preview.PlanKey)return true;
+        preview.PlanKey=key;
+        var layout=PlanningGeometry.Build(claims,plots,preview.MapId,m_Options.Value.Claims.GridSizeMeters,position.x,position.z,
+            options.MarkerSpacingMeters,Math.Min(options.MaxMarkers,2048),focus?.Id,bounds);
+        var terrain=new Dictionary<PlanningMarker,Vector3>();
+        foreach(var marker in layout.Markers)
+        {
+            if(!preview.Terrain.TryGetValue(marker,out var point))
+            {
+                point=new Vector3(marker.X,position.y+options.MarkerHeightMeters+marker.Lift,marker.Z);
+                if(Physics.Raycast(new Vector3(marker.X,position.y+2048f,marker.Z),Vector3.down,out var hit,4096f,RayMasks.GROUND,QueryTriggerInteraction.Ignore))
+                    point.y=hit.point.y+options.MarkerHeightMeters+marker.Lift;
+            }
+            terrain[marker]=point;
+        }
+        preview.Terrain=terrain;
+        EffectManager.askEffectClearByID(preview.Effect,new CSteamID(id));
+        preview.Refresh=new PreviewRefresh<Vector3>(TimeSpan.FromSeconds(options.RefreshSeconds));
+        foreach(var point in terrain.Values)preview.Refresh.Add(point,now.AddSeconds(-options.RefreshSeconds));
+        if(layout.Limited&&!preview.BudgetWarning)messages.Add(UTownyChat.SendAsync(preview.User,"Dense layout: planning shows a limited nearby view. Move closer or select a plot by name."));
+        preview.BudgetWarning=layout.Limited;
+        return true;
+    }
 
     public Task<string> ShowPlotAsync(UnturnedUser user,PlotRect rect,string name)=>ShowAsync(user,"cell",rect,name);
     public async Task<string> ShowAsync(UnturnedUser user, string mode = "town", PlotRect? rectangle=null, string? plotName=null)
@@ -67,6 +139,13 @@ public sealed class ClaimToolService
                     description = Message("grid_off", "Boundary preview stopped. Effect splatters may remain until their own lifetime ends.");
                     return;
                 }
+                if(rectangle is { } planned&&m_Visible.TryGetValue(id,out var planning)&&planning.PlanningTown!=null)
+                {
+                    if(planned.MapId!=planning.MapId){description="That plot is on another map.";return;}
+                    planning.PlanKey="";planning.NextPlanUpdate=DateTime.MinValue;
+                    description=$"{plotName} | {planned.Width} x {planned.Depth} m | Full height. Planning mode keeps the surrounding layout visible.";
+                    return;
+                }
                 var now = DateTime.UtcNow;
                 if (m_Last.TryGetValue(id, out var last) && last.AddSeconds(3) > now)
                 { description = m_Text["tool_cooldown"]; return; }
@@ -89,7 +168,7 @@ public sealed class ClaimToolService
                         label = m_Cache.GetTown(townId.Value)?.Name ?? "town";
                     }
                 }
-                if(rectangle is { } selected && selected.MapId!=mapId)return;
+                if(rectangle is { } selected && selected.MapId!=mapId){description="That plot is on another map.";return;}
                 try { geometry = rectangle is { } rect
                     ? PlotGridGeometry.Build(rect,options.MarkerSpacingMeters,options.MaxMarkers)
                     : ClaimGridGeometry.Build(cells, mapId, size, options.MarkerSpacingMeters, options.MaxMarkers); }
@@ -196,6 +275,7 @@ public sealed class ClaimToolService
     public async Task RefreshAsync(CancellationToken token)
     {
         if (m_Visible.IsEmpty) return;
+        var messages=new List<Task>();
         await UnityDispatch.RunAsync(() =>
         {
             foreach (var pair in m_Visible.ToArray())
@@ -206,11 +286,13 @@ public sealed class ClaimToolService
                     || !Provider.clients.Any(c => c.player == preview.User.Player.Player)
                     || m_Grid.FromWorld(Level.info.name, 0, 0).MapId != preview.MapId)
                 { Clear(pair.Key); continue; }
+                if(preview.PlanningTown!=null&&!UpdatePlanning(pair.Key,preview,now,messages))continue;
                 // Reuse terrain positions, never repeat raycasts during refresh.
                 foreach (var point in preview.Refresh.TakeDue(now, 512))
                     Send(preview.Asset, preview.User, point);
             }
         }, token).ConfigureAwait(false);
+        await Task.WhenAll(messages).ConfigureAwait(false);
     }
     public async Task ClearExpiredAsync(bool all = false, CancellationToken token = default)
     {

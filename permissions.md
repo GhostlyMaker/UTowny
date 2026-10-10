@@ -24,3 +24,7 @@ Player transfers require `UTowny:commands.pay`. They never use the admin money-c
 ## Rectangular plot permissions (rc.10)
 
 Additional registered permissions: `UTowny:commands.plot.pos1`, `.pos2`, `.create`, `.show`, `.preview`, `.clear`, `.delete`, `.release` (each suffix appended to `UTowny:commands.plot`). Existing `.info`, `.buy`, `.forsale`, `.notforsale`, `.permissions` still apply. Registration does not grant access automatically. Leadership checks are separate: mayor/co-mayor selects, creates, lists and deletes unowned plots; only the plot owner releases it. Owners or leadership manage flags. Wildcard roles already covering plot commands need no extra entries.
+
+## Planning permissions (rc.11)
+
+New registered suffixes under `UTowny:commands.plot`: `plan`, `list`, `select`, `publish`, `unpublish`, `rename`, `move`, `resize`, `price`. Existing `create`, `pos1`, `pos2`, `preview`, `show`, `info`, `delete` remain in use. These permissions are not granted automatically; existing wildcard roles may already cover them. Planning and editing also require mayor/co-mayor authority in the target town. Listing/inspecting own-town plots is available with its command permissions.

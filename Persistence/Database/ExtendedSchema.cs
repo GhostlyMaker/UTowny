@@ -58,6 +58,11 @@ CREATE TRIGGER rect_plots_member_removed AFTER DELETE ON town_members
 BEGIN UPDATE rect_plots SET owner_steam64=NULL,for_sale=0,price=0,protection_flags=0 WHERE town_id=OLD.town_id AND owner_steam64=OLD.player_steam64; END;
 UPDATE schema_version SET version=4;");
   }
+  if(s.Number("SELECT version FROM schema_version")<5)
+  {
+   s.Execute(@"ALTER TABLE rect_plots ADD COLUMN draft INTEGER NOT NULL DEFAULT 0 CHECK(draft IN (0,1) AND (draft=0 OR (owner_steam64 IS NULL AND for_sale=0)));
+UPDATE schema_version SET version=5;");
+  }
   var fingerprint=m_Options.Value.Claims.GridSizeMeters+":"+m_Options.Value.Claims.MapIdOverride;
   var saved=s.Scalar("SELECT value FROM metadata WHERE key='grid_configuration'") as string;
   if(saved!=null&&saved!=fingerprint&&s.Number("SELECT COUNT(*) FROM claims")>0)throw new InvalidOperationException("Changing grid size/map identity requires migrating or removing existing claims first");

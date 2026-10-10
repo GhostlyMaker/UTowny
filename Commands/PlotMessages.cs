@@ -3,6 +3,16 @@ public static class PlotMessages
 {
     private static readonly Dictionary<string,string> Defaults=new()
     {
+        ["plan_draft_buy"]="This plot is a draft and cannot be bought until the mayor publishes it.",
+        ["plan_owned"]="Owned plots cannot be changed through planning. Their owner must release them first.",
+        ["plan_not_draft"]="Unpublish this plot with /plot unpublish <name> before editing its layout or planned price.",
+        ["plan_publish"]="Plot published and now for sale.",
+        ["plan_unpublish"]="Plot returned to draft. It is no longer available to buyers.",
+        ["plan_rename"]="Draft renamed.",
+        ["plan_move"]="Draft moved. Planning outlines will update.",
+        ["plan_resize"]="Draft resized to your selected corners.",
+        ["plan_price"]="Planned price saved. The draft is not for sale.",
+        ["plan_delete"]="Plot removed; the town claim is unchanged.",
         ["rect_invalid"]="Select two different corners forming a rectangle from 1 to 1024 metres per side, covering at most 256 claim cells.",
         ["rect_outside"]="Every part of the plot must be inside your town's claimed land on this map.",
         ["rect_legacy_overlap"]="This selection overlaps a whole-cell plot already owned or listed for sale. Unlist an unsold cell before subdividing it; owned cells cannot be subdivided.",

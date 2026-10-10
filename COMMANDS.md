@@ -84,10 +84,29 @@ Boundary markers are re-sent every `visualization.refresh_seconds` (default 1 se
 1. `/plot pos1` at the first corner (or `/plot pos1 <x> <z>`).
 2. `/plot pos2` at the opposite corner (or `/plot pos2 <x> <z>`). A valid selection previews automatically.
 3. `/plot preview` to check the selection again.
-4. `/plot create HouseOne 1000` to create and list it for a total price of 1000.
+4. `/plot create HouseOne 1000` to save a draft with a planned price of 1000.
+5. `/plot publish HouseOne 1000` when ready to offer it for sale.
 
 All heights above/below the rectangle are included. Mayor/Co-Mayor authority and the relevant OpenMod permission are both required. Corners round to metre boundaries. Select 0,0 and 32,32 for a 32 × 32 metre plot, then 32,0 and 64,32 for an adjacent plot. Use coordinates belonging to your actual town, not these illustrative numbers.
 
 `/plot show` previews the saved rectangle at your feet (or the current cell if there is none). `/plot info` reports owner, price and exact bounds. `/plot buy` buys the rectangle at your feet. Existing sale/unlist/permission commands target that rectangle; outside a rectangle they retain whole-cell behaviour, except subdivided cells cannot be sold as a whole. `/plot clear` cancels selection. `/plot release confirm` returns an owned rectangle to the town without a refund. `/plot delete confirm` removes an unowned rectangle while leaving the town claim intact.
 
 Rectangles cannot overlap, extend outside the town, or cover legacy owned/listed cells. Cells with rectangles cannot be unclaimed until their rectangles are removed. No 3D plots are included.
+
+## Planning workflow (rc.11)
+
+- `/plot plan on` — keep nearby plot outlines and town perimeter visible while planning.
+- Select corners with `/plot pos1` and `/plot pos2`.
+- `/plot create HouseOne [price]` — save a draft; repeat for more plots. Nothing is offered for sale yet.
+- `/plot list [page]`, `/plot select HouseOne`, `/plot show HouseOne`, `/plot info HouseOne` — review by name.
+- `/plot rename HouseOne NewName` — rename a draft.
+- `/plot move HouseOne 4 0` — shift a draft 4 metres along world X.
+- `/plot resize HouseOne` — apply the current two-corner selection to a draft.
+- `/plot price HouseOne 1000` — store its planned price without publishing.
+- `/plot publish HouseOne 1000` — open it for purchase at a total price of 1000.
+- `/plot unpublish HouseOne` — return an unowned listing to draft before editing.
+- `/plot delete HouseOne confirm` — remove an unowned plot.
+- `/plot select clear` — follow the plot at your feet instead of a named focus.
+- `/plot plan off` — finish planning.
+
+Planning is private, uses your configured effect, and follows you within a 96m horizontal view. Selected plots have an additional raised outline. A budget notice appears if the nearby view must be limited. Labels/status appear in chat rather than as floating world text. Drafts survive restart and cannot be purchased. All new named edits require town leadership as well as the command permission. Purchased plots are not editable through this workflow.

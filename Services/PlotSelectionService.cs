@@ -9,6 +9,7 @@ public sealed record PlotSelection(TownId Town, string Map, (int X,int Z)? First
 }
 public sealed class PlotSelectionService
 {
+    private readonly ConcurrentDictionary<ulong,(TownId Town,long Plot)> m_Focus=new();
     private readonly ConcurrentDictionary<ulong,PlotSelection> m_Selections=new();
     public PlotSelection Set(PlayerId player,TownId town,string map,bool first,float x,float z)
     {
@@ -20,5 +21,8 @@ public sealed class PlotSelectionService
                 :s with{First=first?point:s.First,Second=first?s.Second:point,Updated=now});
     }
     public PlotSelection? Get(PlayerId player) => m_Selections.TryGetValue(player.Value,out var s)&&s.Updated.AddMinutes(30)>=DateTime.UtcNow?s:null;
+    public void Focus(PlayerId player,TownId town,long plot)=>m_Focus[player.Value]=(town,plot);
+    public long? Focused(PlayerId player,TownId town)=>m_Focus.TryGetValue(player.Value,out var f)&&f.Town==town?f.Plot:null;
+    public void ClearFocus(PlayerId player)=>m_Focus.TryRemove(player.Value,out _);
     public void Clear(PlayerId player)=>m_Selections.TryRemove(player.Value,out _);
 }

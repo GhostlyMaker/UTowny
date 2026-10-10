@@ -93,6 +93,45 @@ public sealed class CommandRouter
    }
    else if(group=="plot")
    {
+    if(op=="plan")
+    {
+     if(args.Length!=2||(Arg(1)!="on"&&Arg(1)!="off"))return "Usage: /plot plan on|off";
+     return await m_Tool.PlanningAsync(user!,Arg(1)=="on");
+    }
+    if(op=="list")
+    {
+     var town=OwnTown(id);var page=args.Length>1?int.Parse(Arg(1)):1;
+     var plots=m_Cache.GetTownPlots(town.Id).OrderBy(p=>p.Name,StringComparer.OrdinalIgnoreCase).ToArray();
+     var pages=Math.Max(1,(plots.Length+5)/6);if(page<1||page>pages)return $"Choose a page between 1 and {pages}.";
+     foreach(var plot in plots.Skip((page-1)*6).Take(6))await UTowny.Utilities.UTownyChat.SendAsync(user!,plot.Summary);
+     return $"{town.Name}: {plots.Length} plots | Page {page}/{pages}. /plot select <name>, /plot info <name>.";
+    }
+    if(op=="select")
+    {
+     if(args.Length!=2)return "Usage: /plot select <name> or /plot select clear";
+     var town=OwnTown(id);if(!m_Auth.Can(id,town.Id,TownAction.ManagePlot))return m_Text["insufficient_role"];
+     if(Arg(1)=="clear"){m_Selections.ClearFocus(id);return "Plot focus cleared. Planning will highlight the plot at your feet.";}
+     var selected=m_Cache.GetTownPlots(town.Id).FirstOrDefault(p=>string.Equals(p.Name,Arg(1),StringComparison.OrdinalIgnoreCase));
+     if(selected==null)return m_Text["plot_not_found"];
+     m_Selections.Focus(id,town.Id,selected.Id);
+     return selected.Summary+". "+await m_Tool.ShowPlotAsync(user!,selected.Bounds,selected.Name);
+    }
+    if(op=="rename"||op=="move"||op=="resize"||op=="price"||op=="publish"||op=="unpublish"||(op=="delete"&&args.Length==3))
+    {
+     var usage="Draft editing: /plot rename <name> <newname>, /plot move <name> <dx> <dz>, /plot resize <name> (uses pos1/pos2), /plot price <name> <amount>. /plot publish <name> <price>, /plot unpublish <name>, /plot delete <name> confirm.";
+     int required=op=="move"?4:(op=="resize"||op=="unpublish"?2:3);if(args.Length!=required)return usage;
+     var town=OwnTown(id);PlotRect? bounds=null;
+     if(op=="resize")
+     {
+      var selection=m_Selections.Get(id);bounds=selection?.Bounds;
+      if(bounds==null||selection!.Town!=town.Id||selection.Map!=grid.MapId)return PlotMessage("rect_selection_missing");
+     }
+     if(op=="delete"&&Arg(2)!="confirm")return usage;
+     var edited=await m_RectPlots.EditAsync(id,town.Id,Arg(1),op,bounds,op=="rename"?Arg(2):null,
+        op=="price"||op=="publish"?long.Parse(Arg(2)):0,op=="move"?int.Parse(Arg(2)):0,op=="move"?int.Parse(Arg(3)):0);
+     if(edited.Success&&op=="resize")m_Selections.Clear(id);
+     return PlotMessage(edited.Code);
+    }
     if(op=="clear"){m_Selections.Clear(id);return PlotMessage("rect_selection_cleared");}
     if(op=="pos1"||op=="pos2")
     {
@@ -103,26 +142,33 @@ public sealed class CommandRouter
      var corner=op=="pos1"?"1":"2";
      var prefix=$"Corner {corner} selected at {x}, {z} (all heights). ";
      if(selected.Bounds is not { } bounds)return prefix+"Set the other corner with /plot "+(op=="pos1"?"pos2":"pos1")+".";
-     var validation=m_RectPlots.Validate(id,selected.Town,bounds);
+     var validation=m_RectPlots.Validate(id,selected.Town,bounds,m_Selections.Focused(id,selected.Town));
      if(!validation.Success)return prefix+PlotMessage(validation.Code);
      return prefix+await m_Tool.ShowPlotAsync(user!,bounds,"selection");
     }
     if(op=="create"||op=="preview")
     {
-     if(op=="create"&&args.Length!=3)return "Usage: /plot create <name> <total price>. Select corners with /plot pos1 and /plot pos2 first.";
+     if(op=="create"&&args.Length!=2&&args.Length!=3)return "Usage: /plot create <name> [planned price]. Saves a draft; /plot publish <name> <price> opens it for sale.";
      var selected=m_Selections.Get(id);
      if(selected?.Bounds is not { } bounds||selected.Map!=grid.MapId)return PlotMessage("rect_selection_missing");
      if(op=="preview")
      {
-      var validation=m_RectPlots.Validate(id,selected.Town,bounds);if(!validation.Success)return PlotMessage(validation.Code);
+      var validation=m_RectPlots.Validate(id,selected.Town,bounds,m_Selections.Focused(id,selected.Town));if(!validation.Success)return PlotMessage(validation.Code);
       return await m_Tool.ShowPlotAsync(user!,bounds,"selection");
      }
-     var created=await m_RectPlots.CreateAsync(id,selected.Town,bounds,Arg(1),long.Parse(Arg(2)));
+     var created=await m_RectPlots.CreateDraftAsync(id,selected.Town,bounds,Arg(1),args.Length==3?long.Parse(Arg(2)):0);
      if(!created.Success)return PlotMessage(created.Code);
      m_Selections.Clear(id);
-     return Message("rect_created_detail",$"Plot {created.Value!.Name} created and listed for {created.Value.Price} total. Size: {bounds.Width} x {bounds.Depth} metres, all heights. Stand inside it to use /plot info, /plot show or /plot buy.",new{Name=created.Value.Name,Price=created.Value.Price,Width=bounds.Width,Depth=bounds.Depth});
+     m_Selections.Focus(id,selected.Town,created.Value!.Id);
+     return $"Draft {created.Value.Name} saved: {bounds.Width} x {bounds.Depth} m. Not for sale. /plot publish {created.Value.Name} {created.Value.Price} when ready.";
     }
     var rect=m_Cache.GetPlotAt(grid,position!.X,position.Z);
+    if((op=="show"||op=="info")&&args.Length>1)
+    {
+     rect=m_Cache.GetTownPlots(OwnTown(id).Id).FirstOrDefault(p=>string.Equals(p.Name,Arg(1),StringComparison.OrdinalIgnoreCase));
+     if(rect==null)return m_Text["plot_not_found"];
+     if(op=="show")m_Selections.Focus(id,rect.TownId,rect.Id);
+    }
     if(op=="show")
     {
      if(rect!=null)return await m_Tool.ShowPlotAsync(user!,rect.Bounds,rect.Name);
@@ -130,7 +176,7 @@ public sealed class CommandRouter
     }
     if(rect!=null)
     {
-     if(op=="info")return $"Plot {rect.Name}: {rect.Bounds.Width} x {rect.Bounds.Depth} metres ({rect.Bounds.Area} m2), all heights. Owner: {(rect.Owner?.Value.ToString()??"town")}. For sale: {(rect.ForSale?rect.Price.ToString():"no")}. Bounds: {rect.Bounds.MinX}, {rect.Bounds.MinZ} to {rect.Bounds.MaxX}, {rect.Bounds.MaxZ}.";
+     if(op=="info")return rect.Summary+$" | Owner: {(rect.Owner?.Value.ToString()??"town")} | Full height | Bounds {rect.Bounds.MinX},{rect.Bounds.MinZ} to {rect.Bounds.MaxX},{rect.Bounds.MaxZ}.";
      if((op=="delete"||op=="release")&&(args.Length!=2||Arg(1)!="confirm"))return $"Usage: /plot {op} confirm while inside the plot. Release returns it to the town without a refund; delete removes an unowned plot.";
      var price=op=="forsale"?long.Parse(Arg(1)):0;
      var action=op=="permissions"?(LandAction)Enum.Parse(typeof(LandAction),Arg(1),true):LandAction.Build;
@@ -185,11 +231,11 @@ public sealed class CommandRouter
  private string PlotMessage(string key)=>Message(key,PlotMessages.Get(key));
  private string Message(string key,string fallback,params object[] args)
  {var value=m_Text[key,args];return value.ResourceNotFound?fallback:value.Value;}
- private string Help(string group)=>Message(group=="plot"?"plot_help_v2":group+"_help",group switch
+ private string Help(string group)=>Message(group=="plot"?"plot_help_v3":group+"_help",group switch
  {
   "town"=>"Town commands: /t create <name> (or /t new <name>), /t info [name], /t list, /t invite <player>, /t accept <town>, /t deposit <amount>, /t claim, /t show [town|cell|off], /t setspawn, /t spawn. Example: /t create VazerTown",
   "nation"=>"Nation commands: /n create <name>, /n info, /n members, /n invite <town>, /n accept <nation>. You must belong to a town first.",
-  "plot"=>"Plots: /plot pos1 [x z], /plot pos2 [x z], /plot preview, /plot create <name> <total price>, /plot clear. Stand inside: /plot info, /plot show, /plot buy, /plot forsale <price>, /plot notforsale, /plot permissions <action> on|off, /plot release confirm, /plot delete confirm. All plots cover every height.",
+  "plot"=>"Planning: /plot plan on|off, /plot list [page], /plot select <name>, /plot pos1, /plot pos2, /plot create <name> [price] (draft), /plot publish <name> <price>. Edit drafts: /plot move <name> <dx> <dz>, /plot resize <name>, /plot rename <name> <newname>. /plot info [name], /plot show [name], /plot buy.",
   "war"=>"War commands: /war request|accept|decline|cancel <town>, /war info, /war list.",
   "pay"=>"Usage: /pay <player name|Steam64> <amount>. This transfers money from your own balance.",
   "buy"=>"Usage: /buy <item> <amount>. Example: /buy scrap 1",
