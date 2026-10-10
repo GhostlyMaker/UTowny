@@ -31,7 +31,7 @@ public static class PlanningGeometry
         var nearby=plots.Where(p=>p.Bounds.MapId==map&&Nearby(p.Bounds,x,z)).OrderBy(p=>p.Id!=selected)
             .ThenBy(p=>Math.Pow((p.Bounds.MinX+p.Bounds.MaxX)/2f-x,2)+Math.Pow((p.Bounds.MinZ+p.Bounds.MaxZ)/2f-z,2)).ToArray();
         // A second raised outline distinguishes the focus with any configured effect.
-        if(selection is { } b&&b.Valid&&b.MapId==map)Rect(b,0.7f);
+        if(selection is { } candidate&&candidate.Valid&&candidate.MapId==map)Rect(candidate,0.7f);
         foreach(var plot in nearby){Rect(plot.Bounds,0);if(plot.Id==selected)Rect(plot.Bounds,0.7f);}
         var cells=new HashSet<GridCoord>(claims.Where(c=>c.MapId==map));
         foreach(var cell in cells.Where(c=>PlanningGeometry.Nearby(PlotRect.Cell(c,size),x,z)))
