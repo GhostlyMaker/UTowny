@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Visualization/PlanningGeometry.cs" Link="Visualization/PlanningGeometry.cs" />
+    <Compile Include="../../Services/RectPlotService.cs" Link="Services/RectPlotService.cs" />
+    <Compile Include="../../Services/PlotSelectionService.cs" Link="Services/PlotSelectionService.cs" />
+    <Compile Include="../../Services/PlotService.cs" Link="Services/PlotService.cs" />
+    <Compile Include="../../Services/LandManagementService.cs" Link="Services/LandManagementService.cs" />
+    <Compile Include="../../Services/TownManagementService.cs" Link="Services/TownManagementService.cs" />
+    <Compile Include="../../Services/AuthorizationService.cs" Link="Services/AuthorizationService.cs" />
+    <Compile Include="../../Services/AdminService.cs" Link="Services/AdminService.cs" />
+    <Compile Include="../../Services/WarService.cs" Link="Services/WarService.cs" />
+    <Compile Include="../../Protection/ProtectionService.cs" Link="Protection/ProtectionService.cs" />
+    <Compile Include="../../Visualization/PlotGridGeometry.cs" Link="Visualization/PlotGridGeometry.cs" />
+
+    <Compile Include="../../Visualization/PreviewRefresh.cs" Link="Visualization/PreviewRefresh.cs" />
+    <Compile Include="../../Visualization/ClaimGridGeometry.cs" Link="Visualization/ClaimGridGeometry.cs" />
+    <Compile Include="../../Services/GridService.cs" Link="Services/GridService.cs" />
+    <Compile Include="../../Configuration/ConfigValidator.cs" Link="Configuration/ConfigValidator.cs" />
+    <Compile Include="../../Services/TeleportActivity.cs" Link="Services/TeleportActivity.cs" />
+    <Compile Include="../../Services/EconomyService.cs" Link="Services/EconomyService.cs" />
+    <Compile Include="../../Utilities/UTownyChat.cs" Link="Utilities/UTownyChat.cs" />
+    <Compile Include="../../Services/TownService.cs" Link="Services/TownService.cs" />
+    <Compile Include="../../Services/PlaytimeService.cs" Link="Services/PlaytimeService.cs" />
+    <Compile Include="../../Services/MutationGate.cs" Link="Services/MutationGate.cs" />
+    <Compile Include="../../Services/DomainEventPublisher.cs" Link="Services/DomainEventPublisher.cs" />
+    <Compile Include="../../Caching/WorldStateCache.cs" Link="Caching/WorldStateCache.cs" />
+    <Compile Include="../../Persistence/Repositories/PlayerRepository.cs" Link="Persistence/Repositories/PlayerRepository.cs" />
+    <Compile Include="../../Persistence/Repositories/WorldRepository.cs" Link="Persistence/Repositories/WorldRepository.cs" />
+    <Compile Include="../../Persistence/Database/SchemaMigrator.cs" Link="Persistence/Database/SchemaMigrator.cs" />
+    <Compile Include="../../Persistence/Database/ExtendedSchema.cs" Link="Persistence/Database/ExtendedSchema.cs" />
+    <Compile Include="../../Persistence/Database/SqlSession.cs" Link="Persistence/Database/SqlSession.cs" />
+    <Compile Include="../../Utilities/KeyedLock.cs" Link="Utilities/KeyedLock.cs" />
+    <Compile Include="../../Api/Events/DomainEvents.cs" Link="Api/Events/DomainEvents.cs" />
+    <Compile Include="../../Domain/**/*.cs" Link="Domain/%(RecursiveDir)%(Filename)%(Extension)" />
+
+    <Compile Include="../../Commands/CommandPermissions.cs" Link="CommandPermissions.cs" />
+    <PackageReference Include="OpenMod.Core" Version="3.8.10" />
+    <Compile Include="../../Utilities/CancellableDispatch.cs" Link="CancellableDispatch.cs" />
+    <Compile Include="../../Persistence/Database/DatabaseConnectionFactory.cs" Link="DatabaseConnectionFactory.cs" />
+    <Compile Include="../../Configuration/UTownyOptions.cs" Link="UTownyOptions.cs" />
+    <Compile Include="../../Configuration/AdditionalOptions.cs" Link="AdditionalOptions.cs" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
+  </ItemGroup>
+</Project>
+
+

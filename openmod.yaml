@@ -1,0 +1,5 @@
+id: UTowny
+name: UTowny
+version: 1.0.0-rc.1
+framework: netstandard2.1
+description: Persistent towns, claims, economy, nations and consensual wars for Unturned.

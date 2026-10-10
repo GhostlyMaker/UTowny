@@ -1,0 +1,28 @@
+name: Build UTowny
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore
+        run: dotnet restore UTowny.csproj
+      - name: Build
+        run: dotnet build UTowny.csproj --configuration Release --no-restore
+      - name: Startup database regression
+        run: dotnet run --project tests/StartupRegression/StartupRegression.csproj --configuration Release
+      - name: Package DLL and SQLite runtime libraries
+        run: python3 scripts/package.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: UTowny-build
+          path: dist/*
+          if-no-files-found: error
