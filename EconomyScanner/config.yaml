@@ -14,6 +14,8 @@ SnapshotFileName: latest-snapshot.json
 
 UploadEnabled: false
 ApiEndpoint: ""
+# Optional. If blank and ApiEndpoint ends with /economy-snapshot, the plugin automatically uses /economy-claim.
+ClaimEndpoint: ""
 ApiHeaderName: X-Economy-Key
 ApiKey: ""
 ApiTimeoutSeconds: 15
