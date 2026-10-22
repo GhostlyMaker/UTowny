@@ -1,0 +1,2 @@
+[functions.economy-snapshot]
+verify_jwt = false
