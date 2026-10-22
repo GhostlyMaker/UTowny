@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -47,7 +48,7 @@ namespace EconomyScanner
             m_Cancellation = new CancellationTokenSource();
 
             m_Logger.LogInformation(
-                "EconomyScanner OpenMod v0.3.0 loaded. Scheduled every {Minutes} minute(s).",
+                "EconomyScanner OpenMod v0.4.0 loaded. Scheduled every {Minutes} minute(s).",
                 m_Settings.ScanIntervalMinutes);
             m_Logger.LogInformation("Commands: /economyscan, /economystatus, and /econclaim <code>");
 
@@ -144,6 +145,7 @@ namespace EconomyScanner
             DateTime generatedUtc = DateTime.UtcNow;
             EconomyScannerConfiguration config = m_Settings;
             ScanAccumulator accumulator = new ScanAccumulator();
+            List<PlayerSnapshot> players = new List<PlayerSnapshot>();
             ScanStats stats = new ScanStats();
             Stopwatch wallClock = Stopwatch.StartNew();
             Stopwatch activeWork = Stopwatch.StartNew();
@@ -157,7 +159,7 @@ namespace EconomyScanner
 
                 if (config.IncludeOnlinePlayerInventories)
                 {
-                    ScanOnlinePlayers(accumulator, stats, config);
+                    ScanOnlinePlayers(accumulator, stats, config, players);
                 }
 
                 int batchSize = Math.Max(1, config.BarricadesPerFrame);
@@ -239,9 +241,10 @@ namespace EconomyScanner
                     ServerId = string.IsNullOrWhiteSpace(config.ServerId) ? "main" : config.ServerId,
                     GeneratedAtUtc = generatedUtc.ToString("o"),
                     Trigger = trigger,
-                    ScopeNote = "Storage is scanned server-wide. Player inventory data covers currently-online players only; active external storage pages are excluded to prevent double-counting.",
+                    ScopeNote = "Storage is scanned server-wide. Player inventory and player identity data cover currently-online players only; active external storage pages are excluded to prevent double-counting.",
                     Stats = stats,
-                    Groups = accumulator.ToSnapshots()
+                    Groups = accumulator.ToSnapshots(),
+                    Players = players
                 };
 
                 string json = SnapshotJsonWriter.Serialize(snapshot);
@@ -250,6 +253,7 @@ namespace EconomyScanner
 
                 LastScanUtc = generatedUtc;
                 LastScanSummary = "Groups/buckets: " + snapshot.Groups.Count
+                    + ", players observed: " + snapshot.Players.Count
                     + ", storages: " + stats.StorageContainersVisited
                     + ", item instances: " + stats.TotalItemInstances
                     + ", active scan work: " + stats.ActiveWorkMilliseconds.ToString("0.0") + " ms"
@@ -274,7 +278,11 @@ namespace EconomyScanner
             }
         }
 
-        private static void ScanOnlinePlayers(ScanAccumulator accumulator, ScanStats stats, EconomyScannerConfiguration config)
+        private static void ScanOnlinePlayers(
+            ScanAccumulator accumulator,
+            ScanStats stats,
+            EconomyScannerConfiguration config,
+            List<PlayerSnapshot> players)
         {
             if (Provider.clients == null)
             {
@@ -302,6 +310,19 @@ namespace EconomyScanner
                 GroupAggregate group = accumulator.GetGroup(groupId);
                 group.OnlinePlayers++;
 
+                PlayerSnapshot playerSnapshot = new PlayerSnapshot
+                {
+                    SteamId = steamPlayer.playerID.steamID.m_SteamID,
+                    SteamName = steamPlayer.playerID.playerName ?? string.Empty,
+                    CharacterName = steamPlayer.playerID.characterName ?? string.Empty,
+                    NickName = steamPlayer.playerID.nickName ?? string.Empty,
+                    GroupId = groupId,
+                    InventoryItemInstances = 0,
+                    Categories = new List<PlayerCategorySnapshot>()
+                };
+                Dictionary<string, PlayerCategorySnapshot> playerCategories =
+                    new Dictionary<string, PlayerCategorySnapshot>(StringComparer.OrdinalIgnoreCase);
+
                 PlayerInventory inventory = steamPlayer.player.inventory;
                 for (byte page = 0; page < PlayerInventory.STORAGE; page++)
                 {
@@ -309,13 +330,42 @@ namespace EconomyScanner
                     for (byte index = 0; index < count; index++)
                     {
                         ItemJar jar = inventory.getItem(page, index);
-                        if (jar != null)
+                        if (jar == null)
                         {
-                            accumulator.AddItem(groupId, jar.item, EconomyItemSource.Player);
+                            continue;
                         }
+
+                        accumulator.AddItem(groupId, jar.item, EconomyItemSource.Player);
+                        playerSnapshot.InventoryItemInstances++;
+
+                        string category = ResolveItemCategory(jar.item.id);
+                        PlayerCategorySnapshot categorySnapshot;
+                        if (!playerCategories.TryGetValue(category, out categorySnapshot))
+                        {
+                            categorySnapshot = new PlayerCategorySnapshot
+                            {
+                                Category = category,
+                                Instances = 0,
+                                ContainedAmount = 0
+                            };
+                            playerCategories.Add(category, categorySnapshot);
+                        }
+
+                        categorySnapshot.Instances++;
+                        categorySnapshot.ContainedAmount += jar.item.amount;
                     }
                 }
+
+                playerSnapshot.Categories.AddRange(playerCategories.Values);
+                playerSnapshot.Categories.Sort((a, b) => string.Compare(a.Category, b.Category, StringComparison.OrdinalIgnoreCase));
+                players.Add(playerSnapshot);
             }
+        }
+
+        private static string ResolveItemCategory(ushort itemId)
+        {
+            ItemAsset asset = Assets.find(EAssetType.ITEM, itemId) as ItemAsset;
+            return asset == null ? "Unknown" : asset.type.ToString();
         }
 
         private static void ScanStorageDrop(
