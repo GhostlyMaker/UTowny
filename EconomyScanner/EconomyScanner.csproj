@@ -10,9 +10,9 @@
     <Authors>GhostlyMaker</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>openmod openmod-plugin unturned economy</PackageTags>
-    <Version>0.2.0</Version>
-    <InformationalVersion>0.2.0</InformationalVersion>
-    <PackageVersion>0.2.0</PackageVersion>
+    <Version>0.3.0</Version>
+    <InformationalVersion>0.3.0</InformationalVersion>
+    <PackageVersion>0.3.0</PackageVersion>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <GenerateNugetPackage>true</GenerateNugetPackage>
     <Nullable>disable</Nullable>
