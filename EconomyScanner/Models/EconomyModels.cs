@@ -11,6 +11,7 @@ namespace EconomyScanner.Models
         public string ScopeNote { get; set; }
         public ScanStats Stats { get; set; }
         public List<GroupSnapshot> Groups { get; set; }
+        public List<PlayerSnapshot> Players { get; set; }
     }
 
     public sealed class ScanStats
@@ -34,6 +35,24 @@ namespace EconomyScanner.Models
         public long PlayerItemInstances { get; set; }
         public long StorageItemInstances { get; set; }
         public List<ItemSnapshot> Items { get; set; }
+    }
+
+    public sealed class PlayerSnapshot
+    {
+        public ulong SteamId { get; set; }
+        public string SteamName { get; set; }
+        public string CharacterName { get; set; }
+        public string NickName { get; set; }
+        public ulong GroupId { get; set; }
+        public long InventoryItemInstances { get; set; }
+        public List<PlayerCategorySnapshot> Categories { get; set; }
+    }
+
+    public sealed class PlayerCategorySnapshot
+    {
+        public string Category { get; set; }
+        public long Instances { get; set; }
+        public long ContainedAmount { get; set; }
     }
 
     public sealed class ItemSnapshot
