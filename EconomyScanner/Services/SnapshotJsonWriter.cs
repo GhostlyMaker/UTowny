@@ -26,6 +26,17 @@ namespace EconomyScanner.Services
                 WriteGroup(sb, snapshot.Groups[g]);
             }
             sb.Append(']');
+            sb.Append(',');
+            sb.Append("\"players\":[");
+            if (snapshot.Players != null)
+            {
+                for (int p = 0; p < snapshot.Players.Count; p++)
+                {
+                    if (p > 0) sb.Append(',');
+                    WritePlayer(sb, snapshot.Players[p]);
+                }
+            }
+            sb.Append(']');
             sb.Append('}');
             return sb.ToString();
         }
@@ -60,6 +71,37 @@ namespace EconomyScanner.Services
                 WriteItem(sb, group.Items[i]);
             }
             sb.Append(']');
+            sb.Append('}');
+        }
+
+        private static void WritePlayer(StringBuilder sb, PlayerSnapshot player)
+        {
+            sb.Append('{');
+            Property(sb, "steamId", player.SteamId.ToString(CultureInfo.InvariantCulture)); sb.Append(',');
+            Property(sb, "steamName", player.SteamName); sb.Append(',');
+            Property(sb, "characterName", player.CharacterName); sb.Append(',');
+            Property(sb, "nickName", player.NickName); sb.Append(',');
+            Property(sb, "groupId", player.GroupId.ToString(CultureInfo.InvariantCulture)); sb.Append(',');
+            Property(sb, "inventoryItemInstances", player.InventoryItemInstances); sb.Append(',');
+            sb.Append("\"categories\":[");
+            if (player.Categories != null)
+            {
+                for (int i = 0; i < player.Categories.Count; i++)
+                {
+                    if (i > 0) sb.Append(',');
+                    WritePlayerCategory(sb, player.Categories[i]);
+                }
+            }
+            sb.Append(']');
+            sb.Append('}');
+        }
+
+        private static void WritePlayerCategory(StringBuilder sb, PlayerCategorySnapshot category)
+        {
+            sb.Append('{');
+            Property(sb, "category", category.Category); sb.Append(',');
+            Property(sb, "instances", category.Instances); sb.Append(',');
+            Property(sb, "containedAmount", category.ContainedAmount);
             sb.Append('}');
         }
 
