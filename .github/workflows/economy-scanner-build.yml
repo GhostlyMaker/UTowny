@@ -21,7 +21,8 @@ jobs:
       - name: Extract EconomyScanner source
         shell: pwsh
         run: |
-          Expand-Archive -Path EconomyScanner-source.zip -DestinationPath buildsrc -Force
+          New-Item -ItemType Directory -Force -Path buildsrc | Out-Null
+          tar -xf EconomyScanner-source.zip -C buildsrc
 
       - name: Restore
         run: dotnet restore buildsrc/UnturnedEconomyScanner/EconomyScanner/EconomyScanner.csproj
