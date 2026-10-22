@@ -25,6 +25,7 @@ namespace EconomyScanner
         private bool m_IsScanning;
 
         public bool IsScanning => m_IsScanning;
+        internal EconomyScannerConfiguration Settings => m_Settings;
         public DateTime? LastScanUtc { get; private set; }
         public string LastScanSummary { get; private set; } = "No scan has completed yet.";
 
@@ -46,9 +47,9 @@ namespace EconomyScanner
             m_Cancellation = new CancellationTokenSource();
 
             m_Logger.LogInformation(
-                "EconomyScanner OpenMod v0.2.0 loaded. Scheduled every {Minutes} minute(s).",
+                "EconomyScanner OpenMod v0.3.0 loaded. Scheduled every {Minutes} minute(s).",
                 m_Settings.ScanIntervalMinutes);
-            m_Logger.LogInformation("Commands: /economyscan and /economystatus");
+            m_Logger.LogInformation("Commands: /economyscan, /economystatus, and /econclaim <code>");
 
             PeriodicScanLoopAsync(m_Cancellation.Token).Forget();
         }
