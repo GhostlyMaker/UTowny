@@ -1,0 +1,37 @@
+name: Build EconomyScanner
+
+on:
+  push:
+    branches: [ "economy-scanner" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Extract EconomyScanner source
+        shell: pwsh
+        run: |
+          Expand-Archive -Path EconomyScanner-source.zip -DestinationPath buildsrc -Force
+
+      - name: Restore
+        run: dotnet restore buildsrc/UnturnedEconomyScanner/EconomyScanner/EconomyScanner.csproj
+
+      - name: Build
+        run: dotnet build buildsrc/UnturnedEconomyScanner/EconomyScanner/EconomyScanner.csproj -c Release --no-restore
+
+      - name: Upload DLL
+        uses: actions/upload-artifact@v4
+        with:
+          name: EconomyScanner-plugin
+          path: buildsrc/UnturnedEconomyScanner/EconomyScanner/bin/Release/net461/EconomyScanner.dll
+          if-no-files-found: error
