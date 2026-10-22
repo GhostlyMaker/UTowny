@@ -3,13 +3,18 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using Rocket.Core.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace EconomyScanner.Services
 {
     internal static class SnapshotPublisher
     {
-        public static void SaveFilesAsync(string pluginDirectory, EconomyScannerConfiguration config, string json, DateTime generatedUtc)
+        public static void SaveFilesAsync(
+            string pluginDirectory,
+            EconomyScannerConfiguration config,
+            string json,
+            DateTime generatedUtc,
+            ILogger logger)
         {
             if (!config.SaveSnapshotLocally)
             {
@@ -41,17 +46,21 @@ namespace EconomyScanner.Services
                         {
                             Directory.CreateDirectory(historyDirectory);
                         }
+
                         File.WriteAllText(historyPath, json, new UTF8Encoding(false));
                     }
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError("[EconomyScanner] Failed to save snapshot: " + ex.Message);
+                    logger.LogError(ex, "EconomyScanner failed to save snapshot files.");
                 }
             });
         }
 
-        public static void UploadAsync(EconomyScannerConfiguration config, string json)
+        public static void UploadAsync(
+            EconomyScannerConfiguration config,
+            string json,
+            ILogger logger)
         {
             if (!config.UploadEnabled || string.IsNullOrWhiteSpace(config.ApiEndpoint))
             {
@@ -59,7 +68,9 @@ namespace EconomyScanner.Services
             }
 
             string endpoint = config.ApiEndpoint.Trim();
-            string headerName = string.IsNullOrWhiteSpace(config.ApiHeaderName) ? "X-Economy-Key" : config.ApiHeaderName.Trim();
+            string headerName = string.IsNullOrWhiteSpace(config.ApiHeaderName)
+                ? "X-Economy-Key"
+                : config.ApiHeaderName.Trim();
             string apiKey = config.ApiKey ?? string.Empty;
             int timeoutMs = Math.Max(1, config.ApiTimeoutSeconds) * 1000;
             byte[] payload = Encoding.UTF8.GetBytes(json);
@@ -73,7 +84,7 @@ namespace EconomyScanner.Services
                     request.Method = "POST";
                     request.ContentType = "application/json";
                     request.Accept = "application/json";
-                    request.UserAgent = "Unturned-EconomyScanner/0.1.0";
+                    request.UserAgent = "Unturned-EconomyScanner-OpenMod/0.2.0";
                     request.Timeout = timeoutMs;
                     request.ReadWriteTimeout = timeoutMs;
                     request.ContentLength = payload.Length;
@@ -92,23 +103,25 @@ namespace EconomyScanner.Services
                     {
                         if (verbose)
                         {
-                            Logger.Log("[EconomyScanner] Snapshot upload returned HTTP " + (int)response.StatusCode + ".");
+                            logger.LogInformation(
+                                "EconomyScanner snapshot upload returned HTTP {StatusCode}.",
+                                (int)response.StatusCode);
                         }
                     }
                 }
                 catch (WebException ex)
                 {
                     HttpWebResponse response = ex.Response as HttpWebResponse;
-                    string status = response == null ? "no HTTP response" : "HTTP " + (int)response.StatusCode;
-                    Logger.LogError("[EconomyScanner] Snapshot upload failed (" + status + "): " + ex.Message);
-                    if (response != null)
-                    {
-                        response.Dispose();
-                    }
+                    string status = response == null
+                        ? "no HTTP response"
+                        : "HTTP " + (int)response.StatusCode;
+
+                    logger.LogError(ex, "EconomyScanner snapshot upload failed ({Status}).", status);
+                    response?.Dispose();
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError("[EconomyScanner] Snapshot upload failed: " + ex.Message);
+                    logger.LogError(ex, "EconomyScanner snapshot upload failed.");
                 }
             });
         }

@@ -1,0 +1,21 @@
+ServerId: main
+ScanIntervalMinutes: 60
+InitialDelaySeconds: 20
+BarricadesPerFrame: 200
+
+IncludeOnlinePlayerInventories: true
+IncludeWorldStorage: true
+IncludeVehicleStorage: true
+IncludeUngrouped: true
+
+SaveSnapshotLocally: true
+SaveHistoricalSnapshots: false
+SnapshotFileName: latest-snapshot.json
+
+UploadEnabled: false
+ApiEndpoint: ""
+ApiHeaderName: X-Economy-Key
+ApiKey: ""
+ApiTimeoutSeconds: 15
+
+VerboseLogging: true

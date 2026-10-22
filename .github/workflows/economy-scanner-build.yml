@@ -1,4 +1,4 @@
-name: Build EconomyScanner
+name: Build EconomyScanner OpenMod
 
 on:
   push:
@@ -21,12 +21,14 @@ jobs:
       - name: Restore
         run: dotnet restore EconomyScanner/EconomyScanner.csproj
 
-      - name: Build
+      - name: Build OpenMod plugin
         run: dotnet build EconomyScanner/EconomyScanner.csproj -c Release --no-restore
 
-      - name: Upload DLL
+      - name: Upload OpenMod plugin
         uses: actions/upload-artifact@v4
         with:
-          name: EconomyScanner-plugin
-          path: EconomyScanner/bin/Release/net461/EconomyScanner.dll
+          name: EconomyScanner-OpenMod
+          path: |
+            EconomyScanner/bin/Release/netstandard2.1/EconomyScanner.dll
+            EconomyScanner/bin/Release/*.nupkg
           if-no-files-found: error

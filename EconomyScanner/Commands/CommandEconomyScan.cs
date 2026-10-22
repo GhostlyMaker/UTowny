@@ -1,30 +1,31 @@
-using System.Collections.Generic;
-using Rocket.API;
-using Rocket.Unturned.Chat;
+using System;
+using Cysharp.Threading.Tasks;
+using OpenMod.Core.Commands;
+using OpenMod.Unturned.Commands;
 
 namespace EconomyScanner.Commands
 {
-    public sealed class CommandEconomyScan : IRocketCommand
+    [Command("economyscan")]
+    [CommandAlias("escan")]
+    [CommandDescription("Starts a batched economy inventory/storage scan.")]
+    public sealed class CommandEconomyScan : UnturnedCommand
     {
-        public AllowedCaller AllowedCaller { get { return AllowedCaller.Both; } }
-        public string Name { get { return "economyscan"; } }
-        public string Help { get { return "Starts a batched economy inventory/storage scan."; } }
-        public string Syntax { get { return ""; } }
-        public List<string> Aliases { get { return new List<string> { "escan" }; } }
-        public List<string> Permissions { get { return new List<string> { "economyscanner.scan" }; } }
+        public CommandEconomyScan(IServiceProvider serviceProvider) : base(serviceProvider)
+        {
+        }
 
-        public void Execute(IRocketPlayer caller, string[] command)
+        protected override async UniTask OnExecuteAsync()
         {
             EconomyScannerPlugin plugin = EconomyScannerPlugin.Instance;
             if (plugin == null)
             {
-                UnturnedChat.Say(caller, "EconomyScanner is not loaded.");
+                await PrintAsync("EconomyScanner is not loaded.");
                 return;
             }
 
             string message;
             plugin.TryStartManualScan(out message);
-            UnturnedChat.Say(caller, message);
+            await PrintAsync(message);
         }
     }
 }
