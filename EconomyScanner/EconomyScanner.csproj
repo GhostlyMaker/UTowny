@@ -6,13 +6,13 @@
     <RootNamespace>EconomyScanner</RootNamespace>
     <PackageId>GhostlyMaker.EconomyScanner</PackageId>
     <Product>EconomyScanner</Product>
-    <Description>OpenMod Unturned economy scanner for group inventory and storage holdings.</Description>
+    <Description>OpenMod Unturned economy scanner for group inventory, player identity, and storage holdings.</Description>
     <Authors>GhostlyMaker</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>openmod openmod-plugin unturned economy</PackageTags>
-    <Version>0.3.0</Version>
-    <InformationalVersion>0.3.0</InformationalVersion>
-    <PackageVersion>0.3.0</PackageVersion>
+    <Version>0.4.0</Version>
+    <InformationalVersion>0.4.0</InformationalVersion>
+    <PackageVersion>0.4.0</PackageVersion>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <GenerateNugetPackage>true</GenerateNugetPackage>
     <Nullable>disable</Nullable>
