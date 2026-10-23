@@ -6,6 +6,8 @@ BarricadesPerFrame: 200
 IncludeOnlinePlayerInventories: true
 IncludeWorldStorage: true
 IncludeVehicleStorage: true
+IncludePlacedBarricades: true
+IncludePlacedStructures: true
 IncludeUngrouped: true
 
 SaveSnapshotLocally: true
