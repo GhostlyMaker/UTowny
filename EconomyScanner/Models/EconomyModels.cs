@@ -17,11 +17,13 @@ namespace EconomyScanner.Models
     public sealed class ScanStats
     {
         public long BarricadesVisited { get; set; }
+        public long StructuresVisited { get; set; }
         public long StorageContainersVisited { get; set; }
         public long OnlinePlayersVisited { get; set; }
         public long TotalItemInstances { get; set; }
         public long PlayerItemInstances { get; set; }
         public long StorageItemInstances { get; set; }
+        public long PlacedAssetInstances { get; set; }
         public double WallClockMilliseconds { get; set; }
         public double ActiveWorkMilliseconds { get; set; }
     }
@@ -34,6 +36,7 @@ namespace EconomyScanner.Models
         public long StorageContainers { get; set; }
         public long PlayerItemInstances { get; set; }
         public long StorageItemInstances { get; set; }
+        public long PlacedAssetInstances { get; set; }
         public List<ItemSnapshot> Items { get; set; }
     }
 
@@ -65,5 +68,6 @@ namespace EconomyScanner.Models
         public long ContainedAmount { get; set; }
         public long PlayerInstances { get; set; }
         public long StorageInstances { get; set; }
+        public long PlacedInstances { get; set; }
     }
 }
