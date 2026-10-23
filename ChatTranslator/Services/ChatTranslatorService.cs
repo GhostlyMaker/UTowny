@@ -19,7 +19,7 @@ namespace ChatTranslator.Services
         string? GetTargetLanguage(ulong steamId);
         Task SetLanguageAsync(ulong steamId, string language);
         Task DisableAsync(ulong steamId);
-        Task<string> TranslateAsync(string text, string targetLanguage);
+        Task<string> TranslateAsync(string text, string sourceLanguage, string targetLanguage);
         bool ShowOriginal { get; }
         string Prefix { get; }
     }
@@ -85,20 +85,21 @@ namespace ChatTranslator.Services
             await SaveLanguagesAsync();
         }
 
-        public Task<string> TranslateAsync(string text, string targetLanguage)
+        public Task<string> TranslateAsync(string text, string sourceLanguage, string targetLanguage)
         {
+            string source = NormalizeLanguage(sourceLanguage);
             string target = NormalizeLanguage(targetLanguage);
 
-            if (string.IsNullOrWhiteSpace(text))
+            if (string.IsNullOrWhiteSpace(text) || source == target)
             {
                 return Task.FromResult(text);
             }
 
-            string cacheKey = target + "\u001f" + text;
+            string cacheKey = source + "\u001f" + target + "\u001f" + text;
             Lazy<Task<string>> lazy = _translationCache.GetOrAdd(
                 cacheKey,
                 _ => new Lazy<Task<string>>(
-                    () => TranslateCoreAsync(text, target),
+                    () => TranslateCoreAsync(text, source, target),
                     true));
 
             return AwaitAndCleanOnFailureAsync(cacheKey, lazy);
@@ -117,7 +118,7 @@ namespace ChatTranslator.Services
             }
         }
 
-        private async Task<string> TranslateCoreAsync(string text, string targetLanguage)
+        private async Task<string> TranslateCoreAsync(string text, string sourceLanguage, string targetLanguage)
         {
             if (string.IsNullOrWhiteSpace(_apiKey) || _apiKey == "PUT_YOUR_DEEPL_API_KEY_HERE")
             {
@@ -129,6 +130,7 @@ namespace ChatTranslator.Services
             request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
             {
                 ["text"] = text,
+                ["source_lang"] = ToDeepLSourceLanguage(sourceLanguage),
                 ["target_lang"] = ToDeepLTargetLanguage(targetLanguage),
                 ["preserve_formatting"] = "1"
             });
@@ -216,6 +218,11 @@ namespace ChatTranslator.Services
                 "DISABLED" => "OFF",
                 _ => value
             };
+        }
+
+        private static string ToDeepLSourceLanguage(string language)
+        {
+            return language == "KO" ? "KO" : "EN";
         }
 
         private static string ToDeepLTargetLanguage(string language)
