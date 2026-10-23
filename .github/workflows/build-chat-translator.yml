@@ -1,0 +1,39 @@
+name: Build ChatTranslator
+
+on:
+  push:
+    branches:
+      - chat-translator-build
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore ChatTranslator/ChatTranslator.csproj
+
+      - name: Build
+        run: dotnet build ChatTranslator/ChatTranslator.csproj -c Release --no-restore
+
+      - name: Package
+        run: |
+          mkdir -p artifact
+          cp ChatTranslator/bin/Release/netstandard2.1/ChatTranslator.dll artifact/
+          cp ChatTranslator/config.yaml artifact/
+          cp ChatTranslator/README.md artifact/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChatTranslator-OpenMod
+          path: artifact
