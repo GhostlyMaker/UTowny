@@ -29,8 +29,6 @@ namespace ChatTranslator.Events
                 return;
             }
 
-            // OpenMod also raises this event for some server/plugin messages where there is
-            // no concrete player recipient. Those messages must be ignored by this plugin.
             if (@event.ToPlayer == null)
             {
                 return;
@@ -39,17 +37,24 @@ namespace ChatTranslator.Events
             ulong receiverId = @event.ToPlayer.SteamId.m_SteamID;
             string? targetLanguage = _translator.GetTargetLanguage(receiverId);
 
-            // Translation is opt-in. If this recipient has not used /lang en or /lang ko,
-            // do nothing and make no DeepL request.
+            // Translation is opt-in. Recipients without /lang en or /lang ko are untouched.
             if (targetLanguage == null)
+            {
+                return;
+            }
+
+            // This plugin is intentionally EN <-> KO only. Hangul means Korean;
+            // otherwise treat the message as English. If the message already matches
+            // the recipient's language, no API request is made.
+            string sourceLanguage = ContainsHangul(original) ? "KO" : "EN";
+            if (string.Equals(sourceLanguage, targetLanguage, StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
 
             try
             {
-                // Source language is intentionally omitted so DeepL auto-detects it.
-                string translated = await _translator.TranslateAsync(original, targetLanguage);
+                string translated = await _translator.TranslateAsync(original, sourceLanguage, targetLanguage);
                 string text = translated;
 
                 if (_translator.ShowOriginal)
@@ -66,7 +71,6 @@ namespace ChatTranslator.Events
             }
             catch (Exception ex)
             {
-                // Avoid flooding the console if DeepL is unavailable or misconfigured.
                 if (DateTime.UtcNow >= _nextWarningUtc)
                 {
                     _nextWarningUtc = DateTime.UtcNow.AddMinutes(1);
@@ -75,6 +79,22 @@ namespace ChatTranslator.Events
                         "Chat translation failed. Further translation errors will be suppressed for 1 minute; original chat is still shown.");
                 }
             }
+        }
+
+        private static bool ContainsHangul(string text)
+        {
+            foreach (char c in text)
+            {
+                // Hangul Jamo, Compatibility Jamo, and Hangul Syllables.
+                if ((c >= '\u1100' && c <= '\u11FF') ||
+                    (c >= '\u3130' && c <= '\u318F') ||
+                    (c >= '\uAC00' && c <= '\uD7AF'))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }
