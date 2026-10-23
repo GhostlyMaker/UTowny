@@ -1,0 +1,8 @@
+deepl:
+  api_key: "PUT_YOUR_DEEPL_API_KEY_HERE"
+  use_free_api: true
+
+translator:
+  default_language: "EN"
+  show_original: false
+  prefix: ""
