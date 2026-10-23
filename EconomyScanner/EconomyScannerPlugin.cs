@@ -48,7 +48,7 @@ namespace EconomyScanner
             m_Cancellation = new CancellationTokenSource();
 
             m_Logger.LogInformation(
-                "EconomyScanner OpenMod v0.4.0 loaded. Scheduled every {Minutes} minute(s).",
+                "EconomyScanner OpenMod v0.5.0 loaded. Scheduled every {Minutes} minute(s).",
                 m_Settings.ScanIntervalMinutes);
             m_Logger.LogInformation("Commands: /economyscan, /economystatus, and /econclaim <code>");
 
@@ -165,7 +165,7 @@ namespace EconomyScanner
                 int batchSize = Math.Max(1, config.BarricadesPerFrame);
                 int batchCounter = 0;
 
-                if (config.IncludeWorldStorage && BarricadeManager.regions != null)
+                if ((config.IncludeWorldStorage || config.IncludePlacedBarricades) && BarricadeManager.regions != null)
                 {
                     BarricadeRegion[,] regions = BarricadeManager.regions;
                     int width = regions.GetLength(0);
@@ -184,7 +184,41 @@ namespace EconomyScanner
                             for (int i = 0; i < region.drops.Count; i++)
                             {
                                 stats.BarricadesVisited++;
-                                ScanStorageDrop(region.drops[i], accumulator, stats, config);
+                                ScanWorldBarricadeDrop(region.drops[i], accumulator, stats, config);
+
+                                if (++batchCounter >= batchSize)
+                                {
+                                    batchCounter = 0;
+                                    activeWork.Stop();
+                                    await UniTask.Yield();
+                                    token.ThrowIfCancellationRequested();
+                                    activeWork.Start();
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (config.IncludePlacedStructures && StructureManager.regions != null)
+                {
+                    StructureRegion[,] regions = StructureManager.regions;
+                    int width = regions.GetLength(0);
+                    int height = regions.GetLength(1);
+
+                    for (int x = 0; x < width; x++)
+                    {
+                        for (int y = 0; y < height; y++)
+                        {
+                            StructureRegion region = regions[x, y];
+                            if (region == null || region.drops == null)
+                            {
+                                continue;
+                            }
+
+                            for (int i = 0; i < region.drops.Count; i++)
+                            {
+                                stats.StructuresVisited++;
+                                ScanStructureDrop(region.drops[i], accumulator, config);
 
                                 if (++batchCounter >= batchSize)
                                 {
@@ -212,7 +246,7 @@ namespace EconomyScanner
                         for (int i = 0; i < region.drops.Count; i++)
                         {
                             stats.BarricadesVisited++;
-                            ScanStorageDrop(region.drops[i], accumulator, stats, config);
+                            ScanStorageContents(region.drops[i], accumulator, stats, config);
 
                             if (++batchCounter >= batchSize)
                             {
@@ -232,6 +266,7 @@ namespace EconomyScanner
                 stats.TotalItemInstances = accumulator.TotalItemInstances;
                 stats.PlayerItemInstances = accumulator.PlayerItemInstances;
                 stats.StorageItemInstances = accumulator.StorageItemInstances;
+                stats.PlacedAssetInstances = accumulator.PlacedAssetInstances;
                 stats.WallClockMilliseconds = wallClock.Elapsed.TotalMilliseconds;
                 stats.ActiveWorkMilliseconds = activeWork.Elapsed.TotalMilliseconds;
 
@@ -241,7 +276,7 @@ namespace EconomyScanner
                     ServerId = string.IsNullOrWhiteSpace(config.ServerId) ? "main" : config.ServerId,
                     GeneratedAtUtc = generatedUtc.ToString("o"),
                     Trigger = trigger,
-                    ScopeNote = "Storage is scanned server-wide. Player inventory and player identity data cover currently-online players only; active external storage pages are excluded to prevent double-counting.",
+                    ScopeNote = "World storage contents, world-placed barricades, and world-placed structures are scanned server-wide. Placed assets are valued once as the placed object while storage contents are valued separately. Vehicle-mounted barricades are not included as placed assets. Player inventory and player identity data cover currently-online players only; active external storage pages are excluded to prevent double-counting.",
                     Stats = stats,
                     Groups = accumulator.ToSnapshots(),
                     Players = players
@@ -255,6 +290,7 @@ namespace EconomyScanner
                 LastScanSummary = "Groups/buckets: " + snapshot.Groups.Count
                     + ", players observed: " + snapshot.Players.Count
                     + ", storages: " + stats.StorageContainersVisited
+                    + ", placed assets: " + stats.PlacedAssetInstances
                     + ", item instances: " + stats.TotalItemInstances
                     + ", active scan work: " + stats.ActiveWorkMilliseconds.ToString("0.0") + " ms"
                     + ", wall time: " + stats.WallClockMilliseconds.ToString("0.0") + " ms.";
@@ -368,11 +404,69 @@ namespace EconomyScanner
             return asset == null ? "Unknown" : asset.type.ToString();
         }
 
-        private static void ScanStorageDrop(
+        private static void ScanWorldBarricadeDrop(
             BarricadeDrop drop,
             ScanAccumulator accumulator,
             ScanStats stats,
             EconomyScannerConfiguration config)
+        {
+            if (drop == null)
+            {
+                return;
+            }
+
+            BarricadeData serverData = drop.GetServersideData();
+            ulong groupId = serverData != null
+                ? serverData.group
+                : (drop.interactable as InteractableStorage)?.group.m_SteamID ?? 0UL;
+
+            if (groupId == 0 && !config.IncludeUngrouped)
+            {
+                return;
+            }
+
+            if (config.IncludePlacedBarricades && serverData != null && serverData.barricade != null && serverData.barricade.asset != null)
+            {
+                accumulator.AddPlacedAsset(groupId, serverData.barricade.asset.id);
+            }
+
+            if (config.IncludeWorldStorage)
+            {
+                ScanStorageContents(drop, accumulator, stats, config, groupId);
+            }
+        }
+
+        private static void ScanStructureDrop(
+            StructureDrop drop,
+            ScanAccumulator accumulator,
+            EconomyScannerConfiguration config)
+        {
+            if (drop == null)
+            {
+                return;
+            }
+
+            StructureData serverData = drop.GetServersideData();
+            if (serverData == null || serverData.structure == null || serverData.structure.asset == null)
+            {
+                return;
+            }
+
+            ulong groupId = serverData.group;
+            if (groupId == 0 && !config.IncludeUngrouped)
+            {
+                return;
+            }
+
+            accumulator.AddPlacedAsset(groupId, serverData.structure.asset.id);
+        }
+
+        private static void ScanStorageContents(
+            BarricadeDrop drop,
+            ScanAccumulator accumulator,
+            ScanStats stats,
+            EconomyScannerConfiguration config,
+            ulong? resolvedGroupId = null)
         {
             if (drop == null)
             {
@@ -386,7 +480,7 @@ namespace EconomyScanner
             }
 
             BarricadeData serverData = drop.GetServersideData();
-            ulong groupId = serverData != null ? serverData.group : storage.group.m_SteamID;
+            ulong groupId = resolvedGroupId ?? (serverData != null ? serverData.group : storage.group.m_SteamID);
 
             if (groupId == 0 && !config.IncludeUngrouped)
             {
