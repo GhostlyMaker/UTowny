@@ -8,8 +8,8 @@ using ChatTranslator.Services;
 namespace ChatTranslator.Commands
 {
     [Command("lang")]
-    [CommandDescription("Sets your automatic chat translation language.")]
-    [CommandSyntax("<en|ko>")]
+    [CommandDescription("Enables chat translation for you, or turns it off.")]
+    [CommandSyntax("<en|ko|off>")]
     [CommandActor(typeof(UnturnedUser))]
     public sealed class CommandLang : UnturnedCommand
     {
@@ -26,18 +26,26 @@ namespace ChatTranslator.Commands
         {
             string requested = await Context.Parameters.GetAsync<string>(0);
             string language = ChatTranslatorService.NormalizeLanguage(requested);
+            var user = (UnturnedUser)Context.Actor;
+            ulong steamId = user.SteamId.m_SteamID;
 
-            if (language != "EN" && language != "KO")
+            if (language == "OFF")
             {
-                await PrintAsync("Supported languages: en (English), ko (Korean)");
+                await _translator.DisableAsync(steamId);
+                await PrintAsync("Chat translation disabled.");
                 return;
             }
 
-            var user = (UnturnedUser)Context.Actor;
-            await _translator.SetLanguageAsync(user.SteamId.m_SteamID, language);
+            if (language != "EN" && language != "KO")
+            {
+                await PrintAsync("Supported options: en (English), ko (Korean), off");
+                return;
+            }
+
+            await _translator.SetLanguageAsync(steamId, language);
 
             string displayName = language == "KO" ? "Korean" : "English";
-            await PrintAsync($"Chat translation language set to {displayName} ({language}).");
+            await PrintAsync($"Incoming chat will now be translated to {displayName} ({language}). Use /lang off to disable it.");
         }
     }
 }
