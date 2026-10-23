@@ -16,9 +16,10 @@ namespace ChatTranslator.Services
     [Service]
     public interface IChatTranslatorService
     {
-        string GetLanguage(ulong steamId);
+        string? GetTargetLanguage(ulong steamId);
         Task SetLanguageAsync(ulong steamId, string language);
-        Task<string> TranslateAsync(string text, string sourceLanguage, string targetLanguage);
+        Task DisableAsync(ulong steamId);
+        Task<string> TranslateAsync(string text, string targetLanguage);
         bool ShowOriginal { get; }
         string Prefix { get; }
     }
@@ -28,13 +29,11 @@ namespace ChatTranslator.Services
     {
         private const string LanguageStoreKey = "chattranslator.languages";
 
-        private readonly IConfiguration _configuration;
         private readonly IDataStore _dataStore;
         private readonly ILogger<ChatTranslatorService> _logger;
         private readonly HttpClient _httpClient;
         private readonly ConcurrentDictionary<ulong, string> _languages = new ConcurrentDictionary<ulong, string>();
         private readonly ConcurrentDictionary<string, Lazy<Task<string>>> _translationCache = new ConcurrentDictionary<string, Lazy<Task<string>>>();
-        private readonly string _defaultLanguage;
         private readonly string _apiKey;
         private readonly string _endpoint;
 
@@ -46,19 +45,17 @@ namespace ChatTranslator.Services
             IDataStore dataStore,
             ILogger<ChatTranslatorService> logger)
         {
-            _configuration = configuration;
             _dataStore = dataStore;
             _logger = logger;
 
-            _apiKey = (_configuration["deepl:api_key"] ?? string.Empty).Trim();
-            bool useFreeApi = !bool.TryParse(_configuration["deepl:use_free_api"], out bool parsed) || parsed;
+            _apiKey = (configuration["deepl:api_key"] ?? string.Empty).Trim();
+            bool useFreeApi = !bool.TryParse(configuration["deepl:use_free_api"], out bool parsed) || parsed;
             _endpoint = useFreeApi
                 ? "https://api-free.deepl.com/v2/translate"
                 : "https://api.deepl.com/v2/translate";
 
-            _defaultLanguage = NormalizeLanguage(_configuration["translator:default_language"] ?? "EN");
-            ShowOriginal = bool.TryParse(_configuration["translator:show_original"], out bool showOriginal) && showOriginal;
-            Prefix = _configuration["translator:prefix"] ?? string.Empty;
+            ShowOriginal = bool.TryParse(configuration["translator:show_original"], out bool showOriginal) && showOriginal;
+            Prefix = configuration["translator:prefix"] ?? string.Empty;
 
             _httpClient = new HttpClient
             {
@@ -68,11 +65,11 @@ namespace ChatTranslator.Services
             LoadLanguagesAsync().GetAwaiter().GetResult();
         }
 
-        public string GetLanguage(ulong steamId)
+        public string? GetTargetLanguage(ulong steamId)
         {
             return _languages.TryGetValue(steamId, out string? language)
                 ? language
-                : _defaultLanguage;
+                : null;
         }
 
         public async Task SetLanguageAsync(ulong steamId, string language)
@@ -82,21 +79,26 @@ namespace ChatTranslator.Services
             await SaveLanguagesAsync();
         }
 
-        public Task<string> TranslateAsync(string text, string sourceLanguage, string targetLanguage)
+        public async Task DisableAsync(ulong steamId)
         {
-            string source = NormalizeLanguage(sourceLanguage);
+            _languages.TryRemove(steamId, out _);
+            await SaveLanguagesAsync();
+        }
+
+        public Task<string> TranslateAsync(string text, string targetLanguage)
+        {
             string target = NormalizeLanguage(targetLanguage);
 
-            if (source == target || string.IsNullOrWhiteSpace(text))
+            if (string.IsNullOrWhiteSpace(text))
             {
                 return Task.FromResult(text);
             }
 
-            string cacheKey = source + "\u001f" + target + "\u001f" + text;
+            string cacheKey = target + "\u001f" + text;
             Lazy<Task<string>> lazy = _translationCache.GetOrAdd(
                 cacheKey,
                 _ => new Lazy<Task<string>>(
-                    () => TranslateCoreAsync(text, source, target),
+                    () => TranslateCoreAsync(text, target),
                     true));
 
             return AwaitAndCleanOnFailureAsync(cacheKey, lazy);
@@ -115,7 +117,7 @@ namespace ChatTranslator.Services
             }
         }
 
-        private async Task<string> TranslateCoreAsync(string text, string sourceLanguage, string targetLanguage)
+        private async Task<string> TranslateCoreAsync(string text, string targetLanguage)
         {
             if (string.IsNullOrWhiteSpace(_apiKey) || _apiKey == "PUT_YOUR_DEEPL_API_KEY_HERE")
             {
@@ -127,7 +129,6 @@ namespace ChatTranslator.Services
             request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
             {
                 ["text"] = text,
-                ["source_lang"] = ToDeepLSourceLanguage(sourceLanguage),
                 ["target_lang"] = ToDeepLTargetLanguage(targetLanguage),
                 ["preserve_formatting"] = "1"
             });
@@ -163,15 +164,21 @@ namespace ChatTranslator.Services
 
                 foreach (KeyValuePair<string, string> pair in stored)
                 {
-                    if (ulong.TryParse(pair.Key, out ulong steamId))
+                    if (!ulong.TryParse(pair.Key, out ulong steamId))
                     {
-                        _languages[steamId] = NormalizeLanguage(pair.Value);
+                        continue;
+                    }
+
+                    string language = NormalizeLanguage(pair.Value);
+                    if (language == "EN" || language == "KO")
+                    {
+                        _languages[steamId] = language;
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Could not load Chat Translator language preferences. Defaults will be used.");
+                _logger.LogWarning(ex, "Could not load Chat Translator language preferences. Translation will default to off.");
             }
         }
 
@@ -203,13 +210,12 @@ namespace ChatTranslator.Services
                 "KO" => "KO",
                 "KR" => "KO",
                 "KOREAN" => "KO",
+                "OFF" => "OFF",
+                "NONE" => "OFF",
+                "DISABLE" => "OFF",
+                "DISABLED" => "OFF",
                 _ => value
             };
-        }
-
-        private static string ToDeepLSourceLanguage(string language)
-        {
-            return language == "KO" ? "KO" : "EN";
         }
 
         private static string ToDeepLTargetLanguage(string language)
