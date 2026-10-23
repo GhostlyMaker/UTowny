@@ -29,6 +29,13 @@ namespace ChatTranslator.Events
                 return;
             }
 
+            // OpenMod also raises this event for some server/plugin messages where there is
+            // no concrete player recipient. Those messages must be ignored by this plugin.
+            if (@event.ToPlayer == null)
+            {
+                return;
+            }
+
             ulong receiverId = @event.ToPlayer.SteamId.m_SteamID;
             string? targetLanguage = _translator.GetTargetLanguage(receiverId);
 
