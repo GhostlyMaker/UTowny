@@ -1,6 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
-using OpenMod.API.Commands;
+using OpenMod.Core.Commands;
 using OpenMod.Unturned.Commands;
 using OpenMod.Unturned.Users;
 using ChatTranslator.Services;
