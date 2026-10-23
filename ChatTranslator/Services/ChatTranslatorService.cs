@@ -36,6 +36,7 @@ namespace ChatTranslator.Services
         private readonly ConcurrentDictionary<string, Lazy<Task<string>>> _translationCache = new ConcurrentDictionary<string, Lazy<Task<string>>>();
         private readonly string _apiKey;
         private readonly string _endpoint;
+        private readonly string _defaultLanguage;
 
         public bool ShowOriginal { get; }
         public string Prefix { get; }
@@ -54,6 +55,12 @@ namespace ChatTranslator.Services
                 ? "https://api-free.deepl.com/v2/translate"
                 : "https://api.deepl.com/v2/translate";
 
+            _defaultLanguage = NormalizeLanguage(configuration["translator:default_language"] ?? "EN");
+            if (_defaultLanguage != "EN" && _defaultLanguage != "KO" && _defaultLanguage != "OFF")
+            {
+                _defaultLanguage = "EN";
+            }
+
             ShowOriginal = bool.TryParse(configuration["translator:show_original"], out bool showOriginal) && showOriginal;
             Prefix = configuration["translator:prefix"] ?? string.Empty;
 
@@ -67,9 +74,11 @@ namespace ChatTranslator.Services
 
         public string? GetTargetLanguage(ulong steamId)
         {
-            return _languages.TryGetValue(steamId, out string? language)
-                ? language
-                : null;
+            string language = _languages.TryGetValue(steamId, out string? savedLanguage)
+                ? savedLanguage
+                : _defaultLanguage;
+
+            return language == "OFF" ? null : language;
         }
 
         public async Task SetLanguageAsync(ulong steamId, string language)
@@ -81,7 +90,8 @@ namespace ChatTranslator.Services
 
         public async Task DisableAsync(ulong steamId)
         {
-            _languages.TryRemove(steamId, out _);
+            // Store OFF explicitly so it overrides the server-wide default language.
+            _languages[steamId] = "OFF";
             await SaveLanguagesAsync();
         }
 
@@ -172,7 +182,7 @@ namespace ChatTranslator.Services
                     }
 
                     string language = NormalizeLanguage(pair.Value);
-                    if (language == "EN" || language == "KO")
+                    if (language == "EN" || language == "KO" || language == "OFF")
                     {
                         _languages[steamId] = language;
                     }
@@ -180,7 +190,7 @@ namespace ChatTranslator.Services
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Could not load Chat Translator language preferences. Translation will default to off.");
+                _logger.LogWarning(ex, "Could not load Chat Translator language preferences. The configured default language will be used.");
             }
         }
 
