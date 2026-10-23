@@ -11,6 +11,7 @@ namespace ChatTranslator.Events
     {
         private readonly IChatTranslatorService _translator;
         private readonly ILogger<ChatTranslationListener> _logger;
+        private DateTime _nextWarningUtc = DateTime.MinValue;
 
         public ChatTranslationListener(
             IChatTranslatorService translator,
@@ -28,20 +29,20 @@ namespace ChatTranslator.Events
                 return;
             }
 
-            ulong senderId = @event.FromPlayer.SteamId.m_SteamID;
             ulong receiverId = @event.ToPlayer.SteamId.m_SteamID;
+            string? targetLanguage = _translator.GetTargetLanguage(receiverId);
 
-            string sourceLanguage = _translator.GetLanguage(senderId);
-            string targetLanguage = _translator.GetLanguage(receiverId);
-
-            if (string.Equals(sourceLanguage, targetLanguage, StringComparison.OrdinalIgnoreCase))
+            // Translation is opt-in. If this recipient has not used /lang en or /lang ko,
+            // do nothing and make no DeepL request.
+            if (targetLanguage == null)
             {
                 return;
             }
 
             try
             {
-                string translated = await _translator.TranslateAsync(original, sourceLanguage, targetLanguage);
+                // Source language is intentionally omitted so DeepL auto-detects it.
+                string translated = await _translator.TranslateAsync(original, targetLanguage);
                 string text = translated;
 
                 if (_translator.ShowOriginal)
@@ -58,11 +59,14 @@ namespace ChatTranslator.Events
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(
-                    ex,
-                    "Failed to translate chat from {SourceLanguage} to {TargetLanguage}; original message will be shown.",
-                    sourceLanguage,
-                    targetLanguage);
+                // Avoid flooding the console if DeepL is unavailable or misconfigured.
+                if (DateTime.UtcNow >= _nextWarningUtc)
+                {
+                    _nextWarningUtc = DateTime.UtcNow.AddMinutes(1);
+                    _logger.LogWarning(
+                        ex,
+                        "Chat translation failed. Further translation errors will be suppressed for 1 minute; original chat is still shown.");
+                }
             }
         }
     }
