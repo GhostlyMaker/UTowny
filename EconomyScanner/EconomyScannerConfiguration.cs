@@ -12,6 +12,8 @@ namespace EconomyScanner
         public bool IncludeOnlinePlayerInventories { get; private set; }
         public bool IncludeWorldStorage { get; private set; }
         public bool IncludeVehicleStorage { get; private set; }
+        public bool IncludePlacedBarricades { get; private set; }
+        public bool IncludePlacedStructures { get; private set; }
         public bool IncludeUngrouped { get; private set; }
         public bool SaveSnapshotLocally { get; private set; }
         public bool SaveHistoricalSnapshots { get; private set; }
@@ -35,6 +37,8 @@ namespace EconomyScanner
                 IncludeOnlinePlayerInventories = ReadBool(configuration, "IncludeOnlinePlayerInventories", true),
                 IncludeWorldStorage = ReadBool(configuration, "IncludeWorldStorage", true),
                 IncludeVehicleStorage = ReadBool(configuration, "IncludeVehicleStorage", true),
+                IncludePlacedBarricades = ReadBool(configuration, "IncludePlacedBarricades", true),
+                IncludePlacedStructures = ReadBool(configuration, "IncludePlacedStructures", true),
                 IncludeUngrouped = ReadBool(configuration, "IncludeUngrouped", true),
                 SaveSnapshotLocally = ReadBool(configuration, "SaveSnapshotLocally", true),
                 SaveHistoricalSnapshots = ReadBool(configuration, "SaveHistoricalSnapshots", false),
