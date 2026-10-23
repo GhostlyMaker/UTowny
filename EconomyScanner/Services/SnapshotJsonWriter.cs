@@ -45,11 +45,13 @@ namespace EconomyScanner.Services
         {
             sb.Append('{');
             Property(sb, "barricadesVisited", stats.BarricadesVisited); sb.Append(',');
+            Property(sb, "structuresVisited", stats.StructuresVisited); sb.Append(',');
             Property(sb, "storageContainersVisited", stats.StorageContainersVisited); sb.Append(',');
             Property(sb, "onlinePlayersVisited", stats.OnlinePlayersVisited); sb.Append(',');
             Property(sb, "totalItemInstances", stats.TotalItemInstances); sb.Append(',');
             Property(sb, "playerItemInstances", stats.PlayerItemInstances); sb.Append(',');
             Property(sb, "storageItemInstances", stats.StorageItemInstances); sb.Append(',');
+            Property(sb, "placedAssetInstances", stats.PlacedAssetInstances); sb.Append(',');
             Property(sb, "wallClockMilliseconds", stats.WallClockMilliseconds); sb.Append(',');
             Property(sb, "activeWorkMilliseconds", stats.ActiveWorkMilliseconds);
             sb.Append('}');
@@ -64,6 +66,7 @@ namespace EconomyScanner.Services
             Property(sb, "storageContainers", group.StorageContainers); sb.Append(',');
             Property(sb, "playerItemInstances", group.PlayerItemInstances); sb.Append(',');
             Property(sb, "storageItemInstances", group.StorageItemInstances); sb.Append(',');
+            Property(sb, "placedAssetInstances", group.PlacedAssetInstances); sb.Append(',');
             sb.Append("\"items\":[");
             for (int i = 0; i < group.Items.Count; i++)
             {
@@ -115,7 +118,8 @@ namespace EconomyScanner.Services
             Property(sb, "instances", item.Instances); sb.Append(',');
             Property(sb, "containedAmount", item.ContainedAmount); sb.Append(',');
             Property(sb, "playerInstances", item.PlayerInstances); sb.Append(',');
-            Property(sb, "storageInstances", item.StorageInstances);
+            Property(sb, "storageInstances", item.StorageInstances); sb.Append(',');
+            Property(sb, "placedInstances", item.PlacedInstances);
             sb.Append('}');
         }
 
