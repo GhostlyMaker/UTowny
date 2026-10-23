@@ -10,7 +10,8 @@ namespace EconomyScanner.Services
     internal enum EconomyItemSource
     {
         Player,
-        Storage
+        Storage,
+        Placed
     }
 
     internal sealed class ScanAccumulator
@@ -21,6 +22,7 @@ namespace EconomyScanner.Services
         public long TotalItemInstances { get; private set; }
         public long PlayerItemInstances { get; private set; }
         public long StorageItemInstances { get; private set; }
+        public long PlacedAssetInstances { get; private set; }
 
         public GroupAggregate GetGroup(ulong groupId)
         {
@@ -41,23 +43,33 @@ namespace EconomyScanner.Services
                 return;
             }
 
+            AddItem(groupId, item.id, item.amount, source);
+        }
+
+        public void AddPlacedAsset(ulong groupId, ushort itemId)
+        {
+            AddItem(groupId, itemId, 0, EconomyItemSource.Placed);
+        }
+
+        private void AddItem(ulong groupId, ushort itemId, byte containedAmount, EconomyItemSource source)
+        {
             GroupAggregate group = GetGroup(groupId);
             ItemAggregate aggregate;
-            if (!group.Items.TryGetValue(item.id, out aggregate))
+            if (!group.Items.TryGetValue(itemId, out aggregate))
             {
-                ItemMetadata metadata = GetItemMetadata(item.id);
+                ItemMetadata metadata = GetItemMetadata(itemId);
                 aggregate = new ItemAggregate
                 {
-                    ItemId = item.id,
+                    ItemId = itemId,
                     Guid = metadata.Guid,
                     Name = metadata.Name,
                     ItemType = metadata.ItemType
                 };
-                group.Items.Add(item.id, aggregate);
+                group.Items.Add(itemId, aggregate);
             }
 
             aggregate.Instances++;
-            aggregate.ContainedAmount += item.amount;
+            aggregate.ContainedAmount += containedAmount;
             TotalItemInstances++;
 
             if (source == EconomyItemSource.Player)
@@ -66,11 +78,17 @@ namespace EconomyScanner.Services
                 group.PlayerItemInstances++;
                 PlayerItemInstances++;
             }
-            else
+            else if (source == EconomyItemSource.Storage)
             {
                 aggregate.StorageInstances++;
                 group.StorageItemInstances++;
                 StorageItemInstances++;
+            }
+            else
+            {
+                aggregate.PlacedInstances++;
+                group.PlacedAssetInstances++;
+                PlacedAssetInstances++;
             }
         }
 
@@ -86,6 +104,7 @@ namespace EconomyScanner.Services
                     StorageContainers = g.StorageContainers,
                     PlayerItemInstances = g.PlayerItemInstances,
                     StorageItemInstances = g.StorageItemInstances,
+                    PlacedAssetInstances = g.PlacedAssetInstances,
                     Items = g.Items.Values
                         .OrderBy(i => i.ItemId)
                         .Select(i => new ItemSnapshot
@@ -97,7 +116,8 @@ namespace EconomyScanner.Services
                             Instances = i.Instances,
                             ContainedAmount = i.ContainedAmount,
                             PlayerInstances = i.PlayerInstances,
-                            StorageInstances = i.StorageInstances
+                            StorageInstances = i.StorageInstances,
+                            PlacedInstances = i.PlacedInstances
                         })
                         .ToList()
                 })
@@ -163,6 +183,7 @@ namespace EconomyScanner.Services
         public long StorageContainers { get; set; }
         public long PlayerItemInstances { get; set; }
         public long StorageItemInstances { get; set; }
+        public long PlacedAssetInstances { get; set; }
         public Dictionary<ushort, ItemAggregate> Items { get; private set; }
     }
 
@@ -176,6 +197,7 @@ namespace EconomyScanner.Services
         public long ContainedAmount { get; set; }
         public long PlayerInstances { get; set; }
         public long StorageInstances { get; set; }
+        public long PlacedInstances { get; set; }
     }
 
     internal sealed class ItemMetadata
