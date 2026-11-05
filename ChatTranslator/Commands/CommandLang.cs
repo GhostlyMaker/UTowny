@@ -9,7 +9,7 @@ namespace ChatTranslator.Commands
 {
     [Command("lang")]
     [CommandDescription("Enables chat translation for you, or turns it off.")]
-    [CommandSyntax("<en|ko|off>")]
+    [CommandSyntax("<en|ko|es|off>")]
     [CommandActor(typeof(UnturnedUser))]
     public sealed class CommandLang : UnturnedCommand
     {
@@ -36,15 +36,15 @@ namespace ChatTranslator.Commands
                 return;
             }
 
-            if (language != "EN" && language != "KO")
+            if (language != "EN" && language != "KO" && language != "ES")
             {
-                await PrintAsync("Supported options: en (English), ko (Korean), off");
+                await PrintAsync("Supported options: en (English), ko (Korean), es (Spanish), off");
                 return;
             }
 
             await _translator.SetLanguageAsync(steamId, language);
 
-            string displayName = language == "KO" ? "Korean" : "English";
+            string displayName = language == "KO" ? "Korean" : language == "ES" ? "Spanish" : "English";
             await PrintAsync($"Incoming chat will now be translated to {displayName} ({language}). Use /lang off to disable it.");
         }
     }
