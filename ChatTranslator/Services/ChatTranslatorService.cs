@@ -56,7 +56,7 @@ namespace ChatTranslator.Services
                 : "https://api.deepl.com/v2/translate";
 
             _defaultLanguage = NormalizeLanguage(configuration["translator:default_language"] ?? "EN");
-            if (_defaultLanguage != "EN" && _defaultLanguage != "KO" && _defaultLanguage != "OFF")
+            if (_defaultLanguage != "EN" && _defaultLanguage != "KO" && _defaultLanguage != "ES" && _defaultLanguage != "OFF")
             {
                 _defaultLanguage = "EN";
             }
@@ -182,7 +182,7 @@ namespace ChatTranslator.Services
                     }
 
                     string language = NormalizeLanguage(pair.Value);
-                    if (language == "EN" || language == "KO" || language == "OFF")
+                    if (language == "EN" || language == "KO" || language == "ES" || language == "OFF")
                     {
                         _languages[steamId] = language;
                     }
@@ -222,6 +222,11 @@ namespace ChatTranslator.Services
                 "KO" => "KO",
                 "KR" => "KO",
                 "KOREAN" => "KO",
+                "ES" => "ES",
+                "ESP" => "ES",
+                "SPANISH" => "ES",
+                "ESPANOL" => "ES",
+                "ESPAÑOL" => "ES",
                 "OFF" => "OFF",
                 "NONE" => "OFF",
                 "DISABLE" => "OFF",
@@ -232,12 +237,12 @@ namespace ChatTranslator.Services
 
         private static string ToDeepLSourceLanguage(string language)
         {
-            return language == "KO" ? "KO" : "EN";
+            return language == "KO" ? "KO" : language == "ES" ? "ES" : "EN";
         }
 
         private static string ToDeepLTargetLanguage(string language)
         {
-            return language == "KO" ? "KO" : "EN-US";
+            return language == "KO" ? "KO" : language == "ES" ? "ES" : "EN-US";
         }
 
         public void Dispose()
