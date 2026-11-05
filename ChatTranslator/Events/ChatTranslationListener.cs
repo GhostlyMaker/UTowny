@@ -29,24 +29,32 @@ namespace ChatTranslator.Events
                 return;
             }
 
-            if (@event.ToPlayer == null)
+            if (@event.ToPlayer == null || @event.FromPlayer == null)
             {
                 return;
             }
 
+            ulong senderId = @event.FromPlayer.SteamId.m_SteamID;
             ulong receiverId = @event.ToPlayer.SteamId.m_SteamID;
+
+            // The sender should always see their own original chat message.
+            if (senderId == receiverId)
+            {
+                return;
+            }
             string? targetLanguage = _translator.GetTargetLanguage(receiverId);
 
-            // Translation is opt-in. Recipients without /lang en or /lang ko are untouched.
+            // EN is the default. /lang ko and /lang es override it; /lang off disables translation.
             if (targetLanguage == null)
             {
                 return;
             }
 
-            // This plugin is intentionally EN <-> KO only. Hangul means Korean;
-            // otherwise treat the message as English. If the message already matches
-            // the recipient's language, no API request is made.
-            string sourceLanguage = ContainsHangul(original) ? "KO" : "EN";
+            // Korean can be recognized from Hangul. Spanish and English share the Latin
+            // alphabet, so use the sender's /lang es preference for Spanish messages.
+            // Otherwise assume English; this avoids expensive detection for every message.
+            string? senderLanguage = _translator.GetTargetLanguage(senderId);
+            string sourceLanguage = ContainsHangul(original) ? "KO" : senderLanguage == "ES" ? "ES" : "EN";
             if (string.Equals(sourceLanguage, targetLanguage, StringComparison.OrdinalIgnoreCase))
             {
                 return;
