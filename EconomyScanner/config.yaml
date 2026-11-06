@@ -20,6 +20,10 @@ ApiEndpoint: ""
 ClaimEndpoint: ""
 # Optional HTTPS endpoint. Blank derives /economy-player-link from ApiEndpoint.
 PlayerLinkEndpoint: ""
+# Lightweight online roster: 5-minute heartbeat and joins/leaves within ~10 seconds.
+# Requires UploadEnabled. Blank endpoint derives /economy-presence from ApiEndpoint.
+PresenceEnabled: true
+PresenceEndpoint: ""
 ApiHeaderName: X-Economy-Key
 ApiKey: ""
 ApiTimeoutSeconds: 15

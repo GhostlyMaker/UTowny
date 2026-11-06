@@ -36,4 +36,22 @@ Check(!gate.TryEnter(1, now.AddSeconds(32)), "cooldown");
 Check(gate.TryEnter(1, now.AddSeconds(42)), "cooldown elapsed");
 for (ulong i=2;i<=16;i++) Check(gate.TryEnter(i, now.AddSeconds(42)), "concurrent allowance");
 Check(!gate.TryEnter(17, now.AddSeconds(42)), "global bound");
+Check(PresenceProtocol.ResolveEndpoint("", "https://example.com/functions/v1/economy-snapshot/") == "https://example.com/functions/v1/economy-presence", "derive presence endpoint");
+Check(PresenceProtocol.ResolveEndpoint("https://example.com/presence", "") == "https://example.com/presence", "explicit presence endpoint");
+Check(PresenceProtocol.ResolveEndpoint("http://example.com/presence", "") == null, "presence requires HTTPS");
+Check(PresenceProtocol.ResolveEndpoint("", "https://example.com/wrong") == null, "presence requires recognized base");
+var observed = new DateTime(2026, 11, 6, 12, 0, 0, DateTimeKind.Utc);
+using (var json = JsonDocument.Parse(PresenceProtocol.Payload("main", new[] { "76561198000000001" }, observed)))
+{
+    Check(json.RootElement.GetProperty("steam_ids")[0].GetString() == "76561198000000001", "presence preserves ID precision");
+    Check(DateTime.Parse(json.RootElement.GetProperty("observed_at").GetString()).ToUniversalTime() == observed, "presence UTC");
+    Check(json.RootElement.EnumerateObject().Count() == 3, "presence contains only identity and timestamp");
+}
+using (var json = JsonDocument.Parse(PresenceProtocol.Payload("main", Array.Empty<string>(), observed)))
+    Check(json.RootElement.GetProperty("steam_ids").GetArrayLength() == 0, "zero online is valid snapshot");
+foreach (var invalid in new[] { new[] { "bad" }, new[] { "7656119800000000x" }, new string[1025] })
+{
+    bool threw = false; try { PresenceProtocol.Payload("main", invalid, observed); } catch (ArgumentException) { threw = true; }
+    Check(threw, "malformed presence rejected");
+}
 Console.WriteLine($"{checks} player-link checks passed.");

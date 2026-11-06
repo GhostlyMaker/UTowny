@@ -20,6 +20,8 @@ namespace EconomyScanner
         public string SnapshotFileName { get; private set; }
         public bool UploadEnabled { get; private set; }
         public string ApiEndpoint { get; private set; }
+        public bool PresenceEnabled { get; private set; }
+        public string PresenceEndpoint { get; private set; }
         public string PlayerLinkEndpoint { get; private set; }
         public string ClaimEndpoint { get; private set; }
         public string ApiHeaderName { get; private set; }
@@ -46,6 +48,8 @@ namespace EconomyScanner
                 SnapshotFileName = ReadString(configuration, "SnapshotFileName", "latest-snapshot.json"),
                 UploadEnabled = ReadBool(configuration, "UploadEnabled", false),
                 ApiEndpoint = ReadString(configuration, "ApiEndpoint", string.Empty),
+                PresenceEnabled = ReadBool(configuration, "PresenceEnabled", true),
+                PresenceEndpoint = ReadString(configuration, "PresenceEndpoint", string.Empty),
                 PlayerLinkEndpoint = ReadString(configuration, "PlayerLinkEndpoint", string.Empty),
                 ClaimEndpoint = ReadString(configuration, "ClaimEndpoint", string.Empty),
                 ApiHeaderName = ReadString(configuration, "ApiHeaderName", "X-Economy-Key"),

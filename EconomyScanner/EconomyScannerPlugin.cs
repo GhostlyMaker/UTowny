@@ -48,11 +48,12 @@ namespace EconomyScanner
             m_Cancellation = new CancellationTokenSource();
 
             m_Logger.LogInformation(
-                "EconomyScanner OpenMod v0.6.0 loaded. Scheduled every {Minutes} minute(s).",
+                "EconomyScanner OpenMod v0.7.0 loaded. Scheduled every {Minutes} minute(s).",
                 m_Settings.ScanIntervalMinutes);
             m_Logger.LogInformation("Commands: /economyscan, /economystatus, /econclaim <code>, and /econlink <code>");
 
             PeriodicScanLoopAsync(m_Cancellation.Token).Forget();
+            PresenceLoopAsync(m_Cancellation.Token).Forget();
         }
 
         protected override async UniTask OnUnloadAsync()
@@ -90,6 +91,55 @@ namespace EconomyScanner
             RunScanAsync("manual", token, true).Forget();
             message = "Economy scan started. It is batched across frames to avoid a server hitch.";
             return true;
+        }
+
+        // This loop only copies connected Steam IDs. It never enumerates inventories or world assets.
+        // Checking the small roster every 10s also publishes joins/leaves without event lifecycle races.
+        private async UniTask PresenceLoopAsync(CancellationToken token)
+        {
+            string previous = null;
+            DateTime nextHeartbeat = DateTime.MinValue;
+            DateTime retryAfter = DateTime.MinValue;
+            try
+            {
+                await UniTask.Delay(TimeSpan.FromSeconds(Math.Max(1, m_Settings.InitialDelaySeconds)), cancellationToken: token);
+                while (!token.IsCancellationRequested)
+                {
+                    await UniTask.SwitchToMainThread();
+                    if (m_Settings.PresenceEnabled && m_Settings.UploadEnabled && BarricadeManager.regions != null && Provider.clients != null)
+                    {
+                        var ids = new SortedSet<string>(StringComparer.Ordinal);
+                        for (int i = 0; i < Provider.clients.Count; i++)
+                        {
+                            var client = Provider.clients[i];
+                            if (client != null && client.player != null)
+                                ids.Add(client.playerID.steamID.m_SteamID.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                        }
+                        string[] snapshot = new string[ids.Count];
+                        ids.CopyTo(snapshot);
+                        string signature = string.Join(",", snapshot);
+                        DateTime now = DateTime.UtcNow;
+                        if (now >= retryAfter && (signature != previous || now >= nextHeartbeat))
+                        {
+                            bool success = await PresencePublisher.PublishAsync(m_Settings, snapshot, now, token);
+                            if (success)
+                            {
+                                previous = signature;
+                                nextHeartbeat = now.AddMinutes(5);
+                                retryAfter = DateTime.MinValue;
+                            }
+                            else
+                            {
+                                retryAfter = DateTime.UtcNow.AddSeconds(30);
+                                m_Logger.LogWarning("Player presence upload failed; retrying in 30 seconds. Economy scans are unaffected.");
+                            }
+                        }
+                    }
+                    await UniTask.Delay(TimeSpan.FromSeconds(10), cancellationToken: token);
+                }
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex) { m_Logger.LogError(ex, "Player presence loop stopped."); }
         }
 
         private async UniTask PeriodicScanLoopAsync(CancellationToken token)
