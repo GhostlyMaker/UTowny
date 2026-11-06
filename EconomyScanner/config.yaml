@@ -18,6 +18,8 @@ UploadEnabled: false
 ApiEndpoint: ""
 # Optional. If blank and ApiEndpoint ends with /economy-snapshot, the plugin automatically uses /economy-claim.
 ClaimEndpoint: ""
+# Optional HTTPS endpoint. Blank derives /economy-player-link from ApiEndpoint.
+PlayerLinkEndpoint: ""
 ApiHeaderName: X-Economy-Key
 ApiKey: ""
 ApiTimeoutSeconds: 15

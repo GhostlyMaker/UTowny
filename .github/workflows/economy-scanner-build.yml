@@ -18,6 +18,9 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Test player linking protocol and cooldown
+        run: dotnet run --project tests/PlayerLink.Tests/PlayerLink.Tests.csproj -c Release
+
       - name: Restore
         run: dotnet restore EconomyScanner/EconomyScanner.csproj
 

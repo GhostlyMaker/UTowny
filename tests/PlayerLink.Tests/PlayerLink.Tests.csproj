@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+<PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><EnableDefaultCompileItems>true</EnableDefaultCompileItems></PropertyGroup>
+<ItemGroup><Compile Include="../../EconomyScanner/Services/PlayerLinkProtocol.cs" Link="PlayerLinkProtocol.cs" /><Compile Include="../../EconomyScanner/Services/PlayerLinkGate.cs" Link="PlayerLinkGate.cs" /></ItemGroup>
+</Project>

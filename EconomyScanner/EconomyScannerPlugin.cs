@@ -48,9 +48,9 @@ namespace EconomyScanner
             m_Cancellation = new CancellationTokenSource();
 
             m_Logger.LogInformation(
-                "EconomyScanner OpenMod v0.5.0 loaded. Scheduled every {Minutes} minute(s).",
+                "EconomyScanner OpenMod v0.6.0 loaded. Scheduled every {Minutes} minute(s).",
                 m_Settings.ScanIntervalMinutes);
-            m_Logger.LogInformation("Commands: /economyscan, /economystatus, and /econclaim <code>");
+            m_Logger.LogInformation("Commands: /economyscan, /economystatus, /econclaim <code>, and /econlink <code>");
 
             PeriodicScanLoopAsync(m_Cancellation.Token).Forget();
         }
