@@ -7,10 +7,10 @@ namespace EconomyScanner.Services
 {
     internal static class PresencePublisher
     {
-        public static async Task<bool> PublishAsync(EconomyScannerConfiguration config, string[] steamIds, DateTime observedUtc, CancellationToken token)
+        public static async Task<PresenceUploadResult> PublishAsync(EconomyScannerConfiguration config, string[] steamIds, DateTime observedUtc, CancellationToken token)
         {
             string endpoint = PresenceProtocol.ResolveEndpoint(config.PresenceEndpoint, config.ApiEndpoint);
-            if (endpoint == null || string.IsNullOrWhiteSpace(config.ApiKey)) return false;
+            if (endpoint == null || string.IsNullOrWhiteSpace(config.ApiKey)) return PresenceUploadResult.Failure("configuration");
             try
             {
                 using (var handler = new HttpClientHandler { AllowAutoRedirect = false })
@@ -21,7 +21,7 @@ namespace EconomyScanner.Services
                     request.Content = new ByteArrayContent(PresenceProtocol.Payload(config.ServerId, steamIds, observedUtc));
                     request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
                     using (var response = await client.SendAsync(request, token).ConfigureAwait(false))
-                        return response.IsSuccessStatusCode;
+                        return response.IsSuccessStatusCode ? PresenceUploadResult.Ok() : PresenceUploadResult.Failure("HTTP " + (int)response.StatusCode);
                 }
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }

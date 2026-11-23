@@ -54,4 +54,16 @@ foreach (var invalid in new[] { new[] { "bad" }, new[] { "7656119800000000x" }, 
     bool threw = false; try { PresenceProtocol.Payload("main", invalid, observed); } catch (ArgumentException) { threw = true; }
     Check(threw, "malformed presence rejected");
 }
+var retries = new PresenceRetryPolicy();
+foreach (var delay in new[] { 30, 60, 120, 240, 300, 300, 300 })
+    Check(retries.RecordFailure() == delay, "presence capped exponential retry");
+Check(retries.ShouldWarn(observed), "first failure warned");
+Check(!retries.ShouldWarn(observed.AddSeconds(299)), "warning rate limited");
+Check(retries.ShouldWarn(observed.AddMinutes(5)), "persistent outage warned");
+Check(retries.RecordSuccess(), "recovery logged once");
+Check(!retries.RecordSuccess(), "healthy uploads quiet");
+Check(retries.RecordFailure() == 30, "success resets retry");
+Check(retries.ShouldWarn(observed.AddMinutes(5)), "new outage warned");
+Check(PresenceUploadResult.Ok().Success, "success result");
+Check(!PresenceUploadResult.Failure("HTTP 503").Success, "failure result");
 Console.WriteLine($"{checks} player-link checks passed.");

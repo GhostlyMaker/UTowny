@@ -100,6 +100,7 @@ namespace EconomyScanner
             string previous = null;
             DateTime nextHeartbeat = DateTime.MinValue;
             DateTime retryAfter = DateTime.MinValue;
+            var retries = new PresenceRetryPolicy();
             try
             {
                 await UniTask.Delay(TimeSpan.FromSeconds(Math.Max(1, m_Settings.InitialDelaySeconds)), cancellationToken: token);
@@ -121,17 +122,21 @@ namespace EconomyScanner
                         DateTime now = DateTime.UtcNow;
                         if (now >= retryAfter && (signature != previous || now >= nextHeartbeat))
                         {
-                            bool success = await PresencePublisher.PublishAsync(m_Settings, snapshot, now, token);
-                            if (success)
+                            var result = await PresencePublisher.PublishAsync(m_Settings, snapshot, now, token);
+                            if (result.Success)
                             {
+                                if (retries.RecordSuccess()) m_Logger.LogInformation("Player presence uploads recovered.");
                                 previous = signature;
                                 nextHeartbeat = now.AddMinutes(5);
                                 retryAfter = DateTime.MinValue;
                             }
                             else
                             {
-                                retryAfter = DateTime.UtcNow.AddSeconds(30);
-                                m_Logger.LogWarning("Player presence upload failed; retrying in 30 seconds. Economy scans are unaffected.");
+                                int delay = retries.RecordFailure();
+                                DateTime failedAt = DateTime.UtcNow;
+                                retryAfter = failedAt.AddSeconds(delay);
+                                if (retries.ShouldWarn(failedAt))
+                                    m_Logger.LogWarning("Player presence upload failed ({Reason}); next retry in {Delay} seconds. Further warnings limited to once per five minutes. Economy scans are unaffected.", result.Reason, delay);
                             }
                         }
                     }
