@@ -25,7 +25,10 @@ namespace EconomyScanner.Services
                 }
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
-            catch { return false; }
+            catch (OperationCanceledException) { return PresenceUploadResult.Failure("timeout"); }
+            catch (HttpRequestException) { return PresenceUploadResult.Failure("connection"); }
+            catch { return PresenceUploadResult.Failure("request"); }
         }
     }
 }
+
